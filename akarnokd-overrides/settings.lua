@@ -1,17 +1,31 @@
 data:extend({
     {
+        type = "bool-setting",
+        name = "akarnokd-override-stack-size-enable",
+        order = "a",
+        setting_type = "startup",
+        default_value = true,
+    },
+    {
         type = "int-setting",
         name = "akarnokd-override-stack-size",
-        order = "aa",
+        order = "b",
         setting_type = "startup",
         default_value = 1000000,
         minimum_value = 1,
         maximum_value = 1000000000
     },
     {
+        type = "bool-setting",
+        name = "akarnokd-override-machine-speed-enable",
+        order = "c",
+        setting_type = "startup",
+        default_value = true,
+    },
+    {
         type = "int-setting",
         name = "akarnokd-override-machine-speed",
-        order = "aa",
+        order = "d",
         setting_type = "startup",
         default_value = 100,
         minimum_value = 1,
@@ -20,7 +34,7 @@ data:extend({
     {
         type = "int-setting",
         name = "akarnokd-override-pole-reach",
-        order = "aa",
+        order = "e",
         setting_type = "startup",
         default_value = 45,
         minimum_value = 1,
@@ -29,7 +43,7 @@ data:extend({
     {
         type = "int-setting",
         name = "akarnokd-override-character-reach",
-        order = "aa",
+        order = "f",
         setting_type = "startup",
         default_value = 100,
         minimum_value = 1,
@@ -38,7 +52,7 @@ data:extend({
     {
         type = "double-setting",
         name = "akarnokd-override-character-speed",
-        order = "aa",
+        order = "g",
         setting_type = "startup",
         default_value = 0.45,
         minimum_value = 0.01,
@@ -47,7 +61,7 @@ data:extend({
     {
         type = "double-setting",
         name = "akarnokd-override-character-mining-speed",
-        order = "aa",
+        order = "h",
         setting_type = "startup",
         default_value = 100,
         minimum_value = 1,
@@ -56,7 +70,7 @@ data:extend({
     {
         type = "double-setting",
         name = "akarnokd-override-drone-speed",
-        order = "aa",
+        order = "i",
         setting_type = "startup",
         default_value = 0.5,
         minimum_value = 0.01,
@@ -65,7 +79,7 @@ data:extend({
     {
         type = "int-setting",
         name = "akarnokd-override-drone-capacity",
-        order = "aa",
+        order = "j",
         setting_type = "startup",
         default_value = 50,
         minimum_value = 1,
