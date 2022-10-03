@@ -20,8 +20,14 @@ script.on_event(defines.events.on_tick, function(event)
     handleTick()
 end)
 
+local supportedEntityTypes = {
+    ["nuclear-reactor"] = true,
+    ["boiler"] = true
+}
+
 function isSupported(entity)
     return entity.prototype.mining_speed or entity.prototype.crafting_speed or entity.prototype.researching_speed
+        or supportedEntityTypes[entity.prototype.name]
 end
 
 function handleEntityPlaced(entity)
@@ -68,16 +74,14 @@ end
 function handleEntityRemoved(entity)
     if entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active" then
         local state = ensureGlobal()
-        for i, _ in pairs(state.providerChests) do
-            local ithChest = state.providerChests[i]
+        for i, ithChest in pairs(state.providerChests) do
             if ithChest.chest == entity then
                 state.providerChests[i] = nil
             end
         end
     elseif entity.name == "akarnokd-latc-requester" then
         local state = ensureGlobal()
-        for i, _ in pairs(state.requesterChests) do
-            local ithChest = state.requesterChests[i]
+        for i, ithChest in pairs(state.requesterChests) do
             if ithChest.chest == entity then
                 state.requesterChests[i] = nil
             end
@@ -200,9 +204,9 @@ function transfer(sourceInventory, destinationInventory, recipe, limit, tag)
         if toInsert > 0 then
             inserted = destinationInventory.insert({ name = name, count = toInsert })
             if inserted > 0 then
+                --log(tag .. " | Transfer " .. name .. " x " .. toInsert .. " (" .. inserted .. ")")
                 sourceInventory.remove({ name = name, count = inserted })
             end
-            --log(tag .. " | Transfer " .. name .. " x " .. toInsert .. " (" .. inserted .. ")")
         end
     end
 end
@@ -239,10 +243,12 @@ function handleTick()
                     transfer(inv, dest.get_inventory(defines.inventory.furnace_source), rec, 1000, "furnace_source")
                     transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), rec, 1000, "assembling_machine_input")
                     transfer(inv, dest.get_inventory(defines.inventory.rocket_silo_input), rec, 1000, "rocket_silo_input")
+                else
+                    transfer(inv, dest.get_inventory(defines.inventory.lab_input), nil, 5, "lab_input")
                 end
                 
                 transfer(inv, dest.get_inventory(defines.inventory.fuel), nil, 5, "fuel")
-                transfer(inv, dest.get_inventory(defines.inventory.lab_input), nil, 5, "lab_input")
+                
             end
         else
             state.requesterChests[i] = nil
