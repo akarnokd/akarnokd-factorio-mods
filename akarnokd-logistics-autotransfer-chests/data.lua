@@ -11,6 +11,12 @@ local function updateRecipe(recipe, item)
     recipe.name = item.name
     recipe.result = item.name
     recipe.enabled = true
+    recipe.ingredients =
+    {
+      {"iron-plate", 6},
+      {"electronic-circuit", 3},
+      {"copper-cable", 5}
+    }
 end
 
 local function copyAndRename(theType, name, newName)
@@ -26,12 +32,15 @@ local requester = table.deepcopy(data.raw["item"]["logistic-chest-requester"])
 
 passiveProvider.name = "akarnokd-latc-passive"
 passiveProvider.place_result = "akarnokd-latc-passive"
+passiveProvider.order = "b[storage]-d[akarnokd-latc-passive]"
 
 activeProvider.name = "akarnokd-latc-active"
 activeProvider.place_result = "akarnokd-latc-active"
+activeProvider.order = "b[storage]-d[akarnokd-latc-active]"
 
 requester.name = "akarnokd-latc-requester"
 requester.place_result = "akarnokd-latc-requester"
+requester.order = "b[storage]-d[akarnokd-latc-requester]"
 
 makeIcon(passiveProvider, 0, 1, 0, 0.3)
 makeIcon(activeProvider, 1, 1, 0, 0.3)
