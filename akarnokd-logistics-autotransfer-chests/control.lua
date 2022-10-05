@@ -176,11 +176,12 @@ function findOutputInventories(source)
     return result
 end
 
-function transfer(sourceInventory, destinationInventory, recipe, limit, tag)
+function transfer(sourceInventory, destinationInventory, recipe, alimit, tag)
     if not destinationInventory then return end
     
     local content = sourceInventory.get_contents()
     for name, count in pairs(content) do
+        local limit = alimit
         local toInsert = count
         if recipe then
             for _, ingredient in pairs(recipe.ingredients) do
