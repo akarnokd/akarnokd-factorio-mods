@@ -4,6 +4,6 @@
   "title": "akarnokd's Overrides",
   "author": "akarnokd",
   "factorio_version": "1.1",
-  "dependencies": ["base >= 1.1"],
+  "dependencies": ["base >= 1.1", "? nullius >= 1.5.12"],
   "description": "Modifies prototypes to be bigger and faster, i.e., stack sizes, crafting speed, mining speed, pumping speed, drone speed, drone capacity."
 }

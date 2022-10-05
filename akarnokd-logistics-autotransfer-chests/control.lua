@@ -24,6 +24,7 @@ local supportedEntityTypes = {
     ["nuclear-reactor"] = true,
     ["boiler"] = true
 }
+local maxItems = settings.global["akarnokd-latc-max-items"].value
 
 function isSupported(entity)
     return entity.prototype.mining_speed or entity.prototype.crafting_speed or entity.prototype.researching_speed
@@ -226,7 +227,7 @@ function handleTick()
             for j, source in pairs(ithChest.neighbors) do
                 local outputs = findOutputInventories(source)
                 for _, output in pairs(outputs) do
-                    transfer(output, inv, nil, nil, "outputs")
+                    transfer(output, inv, nil, maxItems, "outputs")
                 end
             end
         else

@@ -26,6 +26,7 @@ for _, pertype in pairs(data.raw) do
             and item.name ~= "upgrade-planner" and item.name ~= "blueprint-book"
             and item.name ~= "deconstruction-planner" and item.name ~= "item-with-inventory"
             and not item.inventory_size_bonus
+            and not item.equipment_grid
         then
             item.stack_size = stackSize
         end
