@@ -24,7 +24,6 @@ local supportedEntityTypes = {
     ["nuclear-reactor"] = true,
     ["boiler"] = true
 }
-local maxItems = settings.global["akarnokd-latc-max-items"].value
 
 function isSupported(entity)
     return entity.prototype.mining_speed or entity.prototype.crafting_speed or entity.prototype.researching_speed
@@ -220,6 +219,7 @@ end
 
 function handleTick()
     local state = ensureGlobal()
+local maxItems = settings.global["akarnokd-latc-max-items"].value
 
     for i, ithChest in pairs(state.providerChests) do
         if ithChest.chest.valid then
