@@ -229,7 +229,7 @@ script.on_event(defines.events.on_gui_click, function(event)
     end
 end)
 
-script.on_event(defines.events.on_gui_value_changed, function(event)
+script.on_event(defines.events.on_gui_text_changed, function(event)
     if event.element.name == "akarnokd-latc-gui-textfield" then
         local state = ensureGlobal()
         local entity = state.currentGuiEntity
@@ -241,7 +241,7 @@ function updateLimit(entity, amount)
     if entity and (entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active") then
         local state = ensureGlobal()
         state.latcLimits[entity.unit_number] = amount
-        --log(entity.name .. " new limit " .. amount .. " ID " .. entity.unit_number)
+        log(entity.name .. " new limit " .. amount .. " ID " .. entity.unit_number)
     end
 end
 
