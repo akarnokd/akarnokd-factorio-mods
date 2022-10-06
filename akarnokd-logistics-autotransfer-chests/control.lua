@@ -43,6 +43,51 @@ function getOrCreateProviderGui(player)
     return frame
 end
 
+function getOrCreateRequesterGui(player)
+    local frame = player.gui.relative["akarnokd-latc-gui-provider-frame"]
+    if not frame or not frame.valid then
+        local anchor = {gui = defines.relative_gui_type.container_gui, position = defines.relative_gui_position.bottom}
+        frame = player.gui.relative.add{type="frame", anchor=anchor, name="akarnokd-latc-gui-provider-frame"}
+        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-one", caption={"akarnokd-latc-gui.paste-one"}}
+        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-five", caption={"akarnokd-latc-gui.paste-five"}}
+        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-ten", caption={"akarnokd-latc-gui.paste-ten"}}
+        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-hundred", caption={"akarnokd-latc-gui.paste-hundred"}}
+        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-1x", caption={"akarnokd-latc-gui.paste-1x"}}
+        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-5x", caption={"akarnokd-latc-gui.paste-5x"}}
+        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-10x", caption={"akarnokd-latc-gui.paste-10x"}}
+        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-100x", caption={"akarnokd-latc-gui.paste-100x"}}
+    end
+    return frame
+end
+
+function getOrCreateMachineGui(player)
+    local frame = player.gui.relative["akarnokd-latc-gui-machine-frame"]
+    if not frame or not frame.valid then
+        local anchor = {gui = defines.relative_gui_type.assembling_machine_gui, position = defines.relative_gui_position.bottom}
+        frame = player.gui.relative.add{type="frame", anchor=anchor, name="akarnokd-latc-gui-machine-frame"}
+        frame.add{type="button", name="akarnokd-latc-gui-machine-frame-copy", caption={"akarnokd-latc-gui.copy"}}
+    end
+    return frame
+end
+function getOrCreateFurnaceGui(player)
+    local frame = player.gui.relative["akarnokd-latc-gui-furnace-frame"]
+    if not frame or not frame.valid then
+        local anchor = {gui = defines.relative_gui_type.furnace_gui, position = defines.relative_gui_position.bottom}
+        frame = player.gui.relative.add{type="frame", anchor=anchor, name="akarnokd-latc-gui-furnace-frame"}
+        frame.add{type="button", name="akarnokd-latc-gui-furnace-frame-copy", caption={"akarnokd-latc-gui.copy"}}
+    end
+    return frame
+end
+function getOrCreateRocketSiloGui(player)
+    local frame = player.gui.relative["akarnokd-latc-gui-rocketsilo-frame"]
+    if not frame or not frame.valid then
+        local anchor = {gui = defines.relative_gui_type.rocket_silo_gui, position = defines.relative_gui_position.bottom}
+        frame = player.gui.relative.add{type="frame", anchor=anchor, name="akarnokd-latc-gui-rocketsilo-frame"}
+        frame.add{type="button", name="akarnokd-latc-gui-rocketsilo-frame-copy", caption={"akarnokd-latc-gui.copy"}}
+    end
+    return frame
+end
+
 script.on_event(defines.events.on_gui_opened, function(event)
     local player = game.get_player(event.player_index)
     if event.entity then
@@ -60,6 +105,40 @@ script.on_event(defines.events.on_gui_opened, function(event)
                 frame["akarnokd-latc-gui-textfield"].text = "0"
                 log("akarnokd-latc-gui-textfield set to default 0")
             end
+        else
+            frame.visible = false
+        end
+        
+        frame = getOrCreateRequesterGui(player)
+        if event.entity.name == "akarnokd-latc-requester" then
+            local state = ensureGlobal()
+            state.currentGuiEntity = event.entity
+            frame.visible = true
+        else
+            frame.visible = false
+        end
+
+        frame = getOrCreateFurnaceGui(player)
+        if event.entity.type == "furnace" then
+            local state = ensureGlobal()
+            state.currentGuiEntity = event.entity
+            frame.visible = true
+        else
+            frame.visible = false
+        end
+        frame = getOrCreateMachineGui(player)
+        if event.entity.type == "assembling-machine" then
+            local state = ensureGlobal()
+            state.currentGuiEntity = event.entity
+            frame.visible = true
+        else
+            frame.visible = false
+        end
+        frame = getOrCreateRocketSiloGui(player)
+        if event.entity.type == "rocket-silo" then
+            local state = ensureGlobal()
+            state.currentGuiEntity = event.entity
+            frame.visible = true
         else
             frame.visible = false
         end
@@ -91,6 +170,62 @@ script.on_event(defines.events.on_gui_click, function(event)
     if event.element.name == "akarnokd-latc-gui-textfield-set10000" then
         frame["akarnokd-latc-gui-textfield"].text = "10000"
         updateLimit(entity, 10000)
+    end
+    
+    if state.currentGuiEntity then
+        if event.element.name == "akarnokd-latc-gui-furnace-frame-copy" 
+            or event.element.name == "akarnokd-latc-gui-machine-frame-copy" 
+            or event.element.name == "akarnokd-latc-gui-rocketsilo-frame-copy" 
+        then
+            state.recipeCopyPaste = state.currentGuiEntity.get_recipe()
+        end
+    end
+    
+    if state.recipeCopyPaste and state.currentGuiEntity then
+        local itemMultiplier = 0
+        local itemRecipeMultiplier = 0
+        if event.element.name == "akarnokd-latc-gui-provider-frame-one" then
+            itemMultiplier = 1
+        end
+        if event.element.name == "akarnokd-latc-gui-provider-frame-five" then
+            itemMultiplier = 5
+        end
+        if event.element.name == "akarnokd-latc-gui-provider-frame-ten" then
+            itemMultiplier = 10
+        end
+        if event.element.name == "akarnokd-latc-gui-provider-frame-hundred" then
+            itemMultiplier = 100
+        end
+        if event.element.name == "akarnokd-latc-gui-provider-frame-1x" then
+            itemRecipeMultiplier = 1
+        end
+        if event.element.name == "akarnokd-latc-gui-provider-frame-5x" then
+            itemRecipeMultiplier = 5
+        end
+        if event.element.name == "akarnokd-latc-gui-provider-frame-10x" then
+            itemRecipeMultiplier = 10
+        end
+        if event.element.name == "akarnokd-latc-gui-provider-frame-100x" then
+            itemRecipeMultiplier = 100
+        end
+        
+        if itemMultiplier > 0 then
+            local slotIdx = 1
+            for _, ingredient in pairs(state.recipeCopyPaste.ingredients) do
+                if ingredient.type == "item" then
+                    state.currentGuiEntity.set_request_slot( { name = ingredient.name, count = itemMultiplier }, slotIdx )
+                    slotIdx = slotIdx + 1
+                end
+            end
+        elseif itemRecipeMultiplier > 0 then
+            local slotIdx = 1
+            for _, ingredient in pairs(state.recipeCopyPaste.ingredients) do
+                if ingredient.type == "item" then
+                    state.currentGuiEntity.set_request_slot( { name = ingredient.name, count = itemRecipeMultiplier * ingredient.amount }, slotIdx )
+                    slotIdx = slotIdx + 1
+                end
+            end
+        end
     end
 end)
 
