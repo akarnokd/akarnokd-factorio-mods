@@ -5,5 +5,12 @@ data:extend({
         order = "a",
         setting_type = "runtime-global",
         default_value = 10000,
-    }
+    },
+    {
+        type = "bool-setting",
+        name = "akarnokd-latc-insert-if-empty-output",
+        order = "b",
+        setting_type = "runtime-global",
+        default_value = true,
+    },
 })

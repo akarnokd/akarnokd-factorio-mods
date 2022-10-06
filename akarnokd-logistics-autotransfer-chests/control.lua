@@ -1,3 +1,8 @@
+local supportedEntityTypes = {
+    ["nuclear-reactor"] = true,
+    ["boiler"] = true
+}
+
 script.on_event({
     defines.events.on_built_entity,
     defines.events.on_robot_built_entity,
@@ -20,14 +25,115 @@ script.on_event(defines.events.on_tick, function(event)
     handleTick()
 end)
 
-local supportedEntityTypes = {
-    ["nuclear-reactor"] = true,
-    ["boiler"] = true
-}
+function getOrCreateProviderGui(player)
+    local frame = player.gui.relative["akarnokd-latc-gui-frame"]
+    if not frame or not frame.valid then
+        local anchor = {gui = defines.relative_gui_type.container_gui, position = defines.relative_gui_position.bottom}
+        frame = player.gui.relative.add{type="frame", anchor=anchor, name="akarnokd-latc-gui-frame"}
+        
+        frame.add{type="label", caption={"akarnokd-latc-gui.limit"}}
+        frame.add{type="textfield", name="akarnokd-latc-gui-textfield", text="0", numeric=true, allow_decimal=false, allow_negative=false}
+        frame.add{type="button", name="akarnokd-latc-gui-textfield-unlimited", caption={"akarnokd-latc-gui.unlimited"}}
+        frame.add{type="button", name="akarnokd-latc-gui-textfield-set10", caption="10"}
+        frame.add{type="button", name="akarnokd-latc-gui-textfield-set100", caption="100"}
+        frame.add{type="button", name="akarnokd-latc-gui-textfield-set1000", caption="1000"}
+        frame.add{type="button", name="akarnokd-latc-gui-textfield-set10000", caption="10000"}
+        --log("akarnokd-latc-gui-frame created")
+    end
+    return frame
+end
+
+script.on_event(defines.events.on_gui_opened, function(event)
+    local player = game.get_player(event.player_index)
+    if event.entity then
+        --log("GUI for " .. event.entity.name)
+        local frame = getOrCreateProviderGui(player)
+        if event.entity.name == "akarnokd-latc-passive" or event.entity.name == "akarnokd-latc-active" then
+            local state = ensureGlobal()
+            state.currentGuiEntity = event.entity
+            frame.visible = true
+            local latcLimit = getLimitGui(event.entity)
+            if latcLimit then
+                frame["akarnokd-latc-gui-textfield"].text = tostring(latcLimit)
+                log("akarnokd-latc-gui-textfield set to " .. latcLimit)
+            else
+                frame["akarnokd-latc-gui-textfield"].text = "0"
+                log("akarnokd-latc-gui-textfield set to default 0")
+            end
+        else
+            frame.visible = false
+        end
+    end    
+end)
+
+script.on_event(defines.events.on_gui_click, function(event)
+    local player = game.get_player(event.player_index)
+    local frame = player.gui.relative["akarnokd-latc-gui-frame"]
+    local state = ensureGlobal()
+    local entity = state.currentGuiEntity
+    
+    if event.element.name == "akarnokd-latc-gui-textfield-unlimited" then
+        frame["akarnokd-latc-gui-textfield"].text = "0"
+        updateLimit(entity, 0)
+    end
+    if event.element.name == "akarnokd-latc-gui-textfield-set10" then
+        frame["akarnokd-latc-gui-textfield"].text = "10"
+        updateLimit(entity, 10)
+    end
+    if event.element.name == "akarnokd-latc-gui-textfield-set100" then
+        frame["akarnokd-latc-gui-textfield"].text = "100"
+        updateLimit(entity, 100)
+    end
+    if event.element.name == "akarnokd-latc-gui-textfield-set1000" then
+        frame["akarnokd-latc-gui-textfield"].text = "1000"
+        updateLimit(entity, 1000)
+    end
+    if event.element.name == "akarnokd-latc-gui-textfield-set10000" then
+        frame["akarnokd-latc-gui-textfield"].text = "10000"
+        updateLimit(entity, 10000)
+    end
+end)
+
+script.on_event(defines.events.on_gui_value_changed, function(event)
+    if event.element.name == "akarnokd-latc-gui-textfield" then
+        local state = ensureGlobal()
+        local entity = state.currentGuiEntity
+        updateLimit(entity, tonumber(event.element.text))
+    end
+end)
+
+function updateLimit(entity, amount)
+    if entity and (entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active") then
+        local state = ensureGlobal()
+        state.latcLimits[entity.unit_number] = amount
+        --log(entity.name .. " new limit " .. amount .. " ID " .. entity.unit_number)
+    end
+end
+
+function getLimitGui(entity)
+    local state = ensureGlobal()
+    --log("GetLimitGUI " .. entity.name .. " ID " .. entity.unit_number)
+    if entity and (entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active") then
+        local v = state.latcLimits[entity.unit_number]
+        --log("GetLimitGUI " .. entity.name .. " ID " .. entity.unit_number .. " Value " .. tostring(v))
+        return v
+    end
+    return nil
+end
+
+function getLimit(entity)
+    if entity and (entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active") then
+        local state = ensureGlobal()
+        return state.latcLimits[entity.unit_number]
+    end
+    return nil
+end
+
 
 function isSupported(entity)
-    return entity.prototype.mining_speed or entity.prototype.crafting_speed or entity.prototype.researching_speed
-        or supportedEntityTypes[entity.prototype.name]
+    return (entity.prototype.mining_speed or entity.prototype.crafting_speed or entity.prototype.researching_speed
+        or supportedEntityTypes[entity.prototype.name])
+        and not entity.prototype.name == "character"
 end
 
 function handleEntityPlaced(entity)
@@ -111,6 +217,9 @@ function ensureGlobal()
         global.akarnokdLatc.providerChests = { }
         global.akarnokdLatc.requesterChests = { }
     end
+    if not global.akarnokdLatc.latcLimits then
+        global.akarnokdLatc.latcLimits = { }
+    end
     return global.akarnokdLatc
 end
 
@@ -166,7 +275,7 @@ function findOutputInventories(source)
         result[#result + 1] = inv
     end
     inv = source.get_inventory(defines.inventory.assembling_machine_output)
-    if inv then 
+    if inv then
         result[#result + 1] = inv
     end
     inv = source.get_inventory(defines.inventory.burnt_result)
@@ -220,15 +329,25 @@ end
 
 function handleTick()
     local state = ensureGlobal()
-local maxItems = settings.global["akarnokd-latc-max-items"].value
+    local maxItems = settings.global["akarnokd-latc-max-items"].value
+    local insertIfEmpty = settings.global["akarnokd-latc-insert-if-empty-output"].value
 
     for i, ithChest in pairs(state.providerChests) do
         if ithChest.chest.valid then
             local inv = ithChest.chest.get_inventory(defines.inventory.chest)
+            local maxItemInChest = maxItems
+            local latcLimit = getLimit(ithChest.chest)
+            if latcLimit then
+                if ithChest.latcLimit == 0 then
+                    maxItemInChest = nil
+                else
+                    maxItemInChest = latcLimit
+                end
+            end
             for j, source in pairs(ithChest.neighbors) do
                 local outputs = findOutputInventories(source)
                 for _, output in pairs(outputs) do
-                    transfer(output, inv, nil, maxItems, "outputs")
+                    transfer(output, inv, nil, maxItemInChest, "outputs")
                 end
             end
         else
@@ -243,7 +362,18 @@ local maxItems = settings.global["akarnokd-latc-max-items"].value
                 if canHaveRecipe(dest) then
                     rec = dest.get_recipe()
                     transfer(inv, dest.get_inventory(defines.inventory.furnace_source), rec, 1000, "furnace_source")
-                    transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), rec, 1000, "assembling_machine_input")
+                    
+                    local doInsertAssembly = true
+                    if insertIfEmpty then
+                        local outputInv = dest.get_inventory(defines.inventory.assembling_machine_output)
+                        if outputInv and not outputInv.is_empty() then
+                            doInsertAssembly = false
+                        end
+                    end
+                    if doInsertAssembly then
+                        transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), rec, 1000, "assembling_machine_input")
+                    end
+                    
                     transfer(inv, dest.get_inventory(defines.inventory.rocket_silo_input), rec, 1000, "rocket_silo_input")
                 else
                     transfer(inv, dest.get_inventory(defines.inventory.lab_input), nil, 5, "lab_input")
