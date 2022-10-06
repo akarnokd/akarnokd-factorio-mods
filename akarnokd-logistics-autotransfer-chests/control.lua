@@ -131,9 +131,12 @@ end
 
 
 function isSupported(entity)
-    return (entity.prototype.mining_speed or entity.prototype.crafting_speed or entity.prototype.researching_speed
-        or supportedEntityTypes[entity.prototype.name])
-        and not entity.prototype.name == "character"
+    return (entity.prototype.mining_speed 
+            or entity.prototype.crafting_speed 
+            or entity.prototype.researching_speed
+            or supportedEntityTypes[entity.prototype.name]
+        )
+        and entity.prototype.name ~= "character"
 end
 
 function handleEntityPlaced(entity)
@@ -314,7 +317,7 @@ function transfer(sourceInventory, destinationInventory, recipe, alimit, tag)
         if toInsert > 0 then
             inserted = destinationInventory.insert({ name = name, count = toInsert })
             if inserted > 0 then
-                --log(tag .. " | Transfer " .. name .. " x " .. toInsert .. " (" .. inserted .. ")")
+                --log(tag .. " | Transfer " .. name .. " x " .. toInsert .. " (" .. inserted .. ") " .. tag)
                 sourceInventory.remove({ name = name, count = inserted })
             end
         end
@@ -325,6 +328,18 @@ function canHaveRecipe(entity)
     return entity.type == "assembling-machine"
         or entity.type == "furnace"
         or entity.type == "rocket-silo"
+end
+
+function isOutputEmpty(dest)
+    local outputInv = dest.get_inventory(defines.inventory.assembling_machine_output)
+    if outputInv then
+        return outputInv.is_empty()
+    end
+    outputInv = source.get_inventory(defines.inventory.furnace_result)
+    if outputInv then
+        return outputInv.is_empty()
+    end
+    return true
 end
 
 function handleTick()
@@ -361,26 +376,17 @@ function handleTick()
                 local rec = nil
                 if canHaveRecipe(dest) then
                     rec = dest.get_recipe()
-                    transfer(inv, dest.get_inventory(defines.inventory.furnace_source), rec, 1000, "furnace_source")
                     
-                    local doInsertAssembly = true
-                    if insertIfEmpty then
-                        local outputInv = dest.get_inventory(defines.inventory.assembling_machine_output)
-                        if outputInv and not outputInv.is_empty() then
-                            doInsertAssembly = false
-                        end
-                    end
-                    if doInsertAssembly then
+                    if not insertIfEmpty or isOutputEmpty(dest) then
+                        transfer(inv, dest.get_inventory(defines.inventory.furnace_source), rec, 1000, "furnace_source")
                         transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), rec, 1000, "assembling_machine_input")
+                        transfer(inv, dest.get_inventory(defines.inventory.rocket_silo_input), rec, 1000, "rocket_silo_input")
                     end
-                    
-                    transfer(inv, dest.get_inventory(defines.inventory.rocket_silo_input), rec, 1000, "rocket_silo_input")
                 else
                     transfer(inv, dest.get_inventory(defines.inventory.lab_input), nil, 5, "lab_input")
                 end
                 
                 transfer(inv, dest.get_inventory(defines.inventory.fuel), nil, 5, "fuel")
-                
             end
         else
             state.requesterChests[i] = nil
