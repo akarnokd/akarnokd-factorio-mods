@@ -27,11 +27,8 @@ end)
 
 function getOrCreateProviderGui(player)
     local frame = player.gui.relative["akarnokd-latc-gui-frame"]
-    if not frame or (not frame.valid) or (not frame["akarnokd-latc-gui-textfield-set1"]) then
+    if (not frame) or (not frame.valid) then
         local anchor = {gui = defines.relative_gui_type.container_gui, position = defines.relative_gui_position.bottom}
-        if frame then
-            frame.destroy()
-        end
         frame = player.gui.relative.add{type="frame", anchor=anchor, name="akarnokd-latc-gui-frame"}
         
         frame.add{type="label", caption={"akarnokd-latc-gui.limit"}}
@@ -49,17 +46,31 @@ end
 
 function getOrCreateRequesterGui(player)
     local frame = player.gui.relative["akarnokd-latc-gui-provider-frame"]
-    if not frame or not frame.valid then
+    if (not frame) or (not frame.valid) then
         local anchor = {gui = defines.relative_gui_type.container_gui, position = defines.relative_gui_position.bottom}
         frame = player.gui.relative.add{type="frame", anchor=anchor, name="akarnokd-latc-gui-provider-frame"}
-        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-one", caption={"akarnokd-latc-gui.paste-one"}}
-        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-five", caption={"akarnokd-latc-gui.paste-five"}}
-        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-ten", caption={"akarnokd-latc-gui.paste-ten"}}
-        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-hundred", caption={"akarnokd-latc-gui.paste-hundred"}}
-        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-1x", caption={"akarnokd-latc-gui.paste-1x"}}
-        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-5x", caption={"akarnokd-latc-gui.paste-5x"}}
-        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-10x", caption={"akarnokd-latc-gui.paste-10x"}}
-        frame.add{type="button", name="akarnokd-latc-gui-provider-frame-100x", caption={"akarnokd-latc-gui.paste-100x"}}
+
+        local parent = frame.add{type="flow", name="akarnokd-latc-gui-provider-parent", direction="vertical"}
+        
+        local pastePanel = parent.add{type="flow", name="akarnokd-latc-gui-provider-paste", direction="horizontal"}
+
+        pastePanel.add{type="label", caption={"akarnokd-latc-gui.paste"}}
+        pastePanel.add{type="button", name="akarnokd-latc-gui-provider-frame-one", caption={"akarnokd-latc-gui.paste-one"}}
+        pastePanel.add{type="button", name="akarnokd-latc-gui-provider-frame-five", caption={"akarnokd-latc-gui.paste-five"}}
+        pastePanel.add{type="button", name="akarnokd-latc-gui-provider-frame-ten", caption={"akarnokd-latc-gui.paste-ten"}}
+        pastePanel.add{type="button", name="akarnokd-latc-gui-provider-frame-hundred", caption={"akarnokd-latc-gui.paste-hundred"}}
+        pastePanel.add{type="button", name="akarnokd-latc-gui-provider-frame-1x", caption={"akarnokd-latc-gui.paste-1x"}}
+        pastePanel.add{type="button", name="akarnokd-latc-gui-provider-frame-5x", caption={"akarnokd-latc-gui.paste-5x"}}
+        pastePanel.add{type="button", name="akarnokd-latc-gui-provider-frame-10x", caption={"akarnokd-latc-gui.paste-10x"}}
+        pastePanel.add{type="button", name="akarnokd-latc-gui-provider-frame-100x", caption={"akarnokd-latc-gui.paste-100x"}}
+
+        local thresholdPanel = parent.add{type="flow", name="akarnokd-latc-gui-provider-threshold", direction="horizontal"}
+        thresholdPanel.add{type="checkbox", name="akarnokd-latc-gui-provider-threshold-enabled", caption={"akarnokd-latc-gui.threshold"}, state = false}
+        thresholdPanel.add{type="textfield", name="akarnokd-latc-gui-provider-threshold-min", text="0", numeric=true, allow_decimal=false, allow_negative=false}
+        thresholdPanel.add{type="label", caption={"akarnokd-latc-gui.upto"}}
+        thresholdPanel.add{type="textfield", name="akarnokd-latc-gui-provider-threshold-max", text="1000000", numeric=true, allow_decimal=false, allow_negative=false}
+        thresholdPanel.add{type="label", caption={"akarnokd-latc-gui.request"}}
+        thresholdPanel.add{type="textfield", name="akarnokd-latc-gui-provider-threshold-request", text="10", numeric=true, allow_decimal=false, allow_negative=false}
     end
     return frame
 end
@@ -101,16 +112,17 @@ script.on_event(defines.events.on_gui_opened, function(event)
             local state = ensureGlobal()
             state.currentGuiEntity = event.entity
             frame.visible = true
+            local panel = frame
             local latcLimit = getLimitGui(event.entity)
             if latcLimit then
-                frame["akarnokd-latc-gui-textfield"].text = tostring(latcLimit)
-                log("akarnokd-latc-gui-textfield set to " .. latcLimit)
+                panel["akarnokd-latc-gui-textfield"].text = tostring(latcLimit)
+                --log("akarnokd-latc-gui-textfield set to " .. latcLimit)
             else
-                frame["akarnokd-latc-gui-textfield"].text = "0"
-                log("akarnokd-latc-gui-textfield set to default 0")
+                panel["akarnokd-latc-gui-textfield"].text = "0"
+                --log("akarnokd-latc-gui-textfield set to default 0")
             end
         else
-            frame.visible = false
+            frame.destroy()
         end
         
         frame = getOrCreateRequesterGui(player)
@@ -118,8 +130,21 @@ script.on_event(defines.events.on_gui_opened, function(event)
             local state = ensureGlobal()
             state.currentGuiEntity = event.entity
             frame.visible = true
+            local panel = frame["akarnokd-latc-gui-provider-parent"]["akarnokd-latc-gui-provider-threshold"]
+            local trs = getThreshold(event.entity)
+            if trs then
+                panel["akarnokd-latc-gui-provider-threshold-enabled"].state = trs.enabled
+                panel["akarnokd-latc-gui-provider-threshold-min"].text = tostring(trs.minValue)
+                panel["akarnokd-latc-gui-provider-threshold-max"].text = tostring(trs.maxValue)
+                panel["akarnokd-latc-gui-provider-threshold-request"].text = tostring(trs.request)
+            else
+                panel["akarnokd-latc-gui-provider-threshold-enabled"].state = false
+                panel["akarnokd-latc-gui-provider-threshold-min"].text = "0"
+                panel["akarnokd-latc-gui-provider-threshold-max"].text = "1000000"
+                panel["akarnokd-latc-gui-provider-threshold-request"].text = "10"
+            end
         else
-            frame.visible = false
+            frame.destroy()
         end
 
         frame = getOrCreateFurnaceGui(player)
@@ -243,7 +268,56 @@ script.on_event(defines.events.on_gui_text_changed, function(event)
         local entity = state.currentGuiEntity
         updateLimit(entity, tonumber(event.element.text))
     end
+    if event.element.name == "akarnokd-latc-gui-provider-threshold-min" then
+        local state = ensureGlobal()
+        local entity = state.currentGuiEntity
+        updateThreshold(entity, nil, tonumber(event.element.text), nil, nil)
+    end
+    if event.element.name == "akarnokd-latc-gui-provider-threshold-max" then
+        local state = ensureGlobal()
+        local entity = state.currentGuiEntity
+        updateThreshold(entity, nil, nil, tonumber(event.element.text), nil)
+    end
+    if event.element.name == "akarnokd-latc-gui-provider-threshold-request" then
+        local state = ensureGlobal()
+        local entity = state.currentGuiEntity
+        updateThreshold(entity, nil, nil, nil, tonumber(event.element.text))
+    end
 end)
+
+script.on_event(defines.events.on_gui_checked_state_changed, function(event)
+    if event.element.name == "akarnokd-latc-gui-provider-threshold-enabled" then
+        local state = ensureGlobal()
+        local entity = state.currentGuiEntity
+        updateThreshold(entity, event.element.state, nil, nil)
+    end
+end)
+
+function updateThreshold(entity, enabled, minValue, maxValue, request)
+    local state = ensureGlobal()
+    local trs = state.thresholds[entity.unit_number]
+    if not trs then
+        trs = { enabled = false, minValue = 0, maxValue = 1000000, request = 10 }
+        state.thresholds[entity.unit_number] = trs
+    end
+    if enabled ~= nil then
+        trs.enabled = enabled
+    end
+    if minValue then
+        trs.minValue = minValue
+    end
+    if maxValue then
+        trs.maxValue = maxValue
+    end
+    if request then
+        trs.request = request
+    end
+end
+
+function getThreshold(entity)
+    local state = ensureGlobal()
+    return state.thresholds[entity.unit_number]
+end
 
 function updateLimit(entity, amount)
     if entity and (entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active") then
@@ -365,6 +439,9 @@ function ensureGlobal()
     end
     if not global.akarnokdLatc.latcLimits then
         global.akarnokdLatc.latcLimits = { }
+    end
+    if not global.akarnokdLatc.thresholds then
+        global.akarnokdLatc.thresholds = { }
     end
     return global.akarnokdLatc
 end
@@ -503,36 +580,70 @@ function handleTick()
                 end
             end
             for j, source in pairs(ithChest.neighbors) do
-                local outputs = findOutputInventories(source)
-                for _, output in pairs(outputs) do
-                    transfer(output, inv, nil, maxItemInChest, "outputs")
+                if source.valid then
+                    local outputs = findOutputInventories(source)
+                    for _, output in pairs(outputs) do
+                        transfer(output, inv, nil, maxItemInChest, "outputs")
+                    end
+                else
+                    ithChest.neighbors[j] = nil
+                    break
                 end
             end
         else
             state.providerChests[i] = nil
+            break
         end
     end
     for i, ithChest in pairs(state.requesterChests) do
         if ithChest.chest.valid then
+        
+            -- handle threshold-based requesting
+            local trs = state.thresholds[ithChest.chest.unit_number]
+            if trs and trs.enabled and ithChest.chest.logistic_network then
+                for ri = 1, ithChest.chest.request_slot_count do
+                    local rs = ithChest.chest.get_request_slot(ri)
+                    if rs then
+                        local num = ithChest.chest.logistic_network.get_item_count(rs.name, "providers")
+                        if num >= trs.minValue and num <= trs.maxValue then
+                            if rs.count ~= trs.request then
+                                ithChest.chest.set_request_slot({ name = rs.name, count = trs.request }, ri)
+                            end
+                        else
+                            if rs.count ~= 0 then
+                                ithChest.chest.set_request_slot({ name = rs.name, count = 0 }, ri ) 
+                            end
+                        end
+                    end
+                end
+            end
+            
+            -- handle inserting into neighbors
             local inv = ithChest.chest.get_inventory(defines.inventory.chest)
             for j, dest in pairs(ithChest.neighbors) do
-                local rec = nil
-                if canHaveRecipe(dest) then
-                    rec = dest.get_recipe()
-                    
-                    if not insertIfEmpty or isOutputEmpty(dest) then
-                        transfer(inv, dest.get_inventory(defines.inventory.furnace_source), rec, 1000, "furnace_source")
-                        transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), rec, 1000, "assembling_machine_input")
-                        transfer(inv, dest.get_inventory(defines.inventory.rocket_silo_input), rec, 1000, "rocket_silo_input")
+                if dest.valid then
+                    local rec = nil
+                    if canHaveRecipe(dest) then
+                        rec = dest.get_recipe()
+                        
+                        if not insertIfEmpty or isOutputEmpty(dest) then
+                            transfer(inv, dest.get_inventory(defines.inventory.furnace_source), rec, 1000, "furnace_source")
+                            transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), rec, 1000, "assembling_machine_input")
+                            transfer(inv, dest.get_inventory(defines.inventory.rocket_silo_input), rec, 1000, "rocket_silo_input")
+                        end
+                    else
+                        transfer(inv, dest.get_inventory(defines.inventory.lab_input), nil, 5, "lab_input")
                     end
+                    
+                    transfer(inv, dest.get_inventory(defines.inventory.fuel), nil, 5, "fuel")
                 else
-                    transfer(inv, dest.get_inventory(defines.inventory.lab_input), nil, 5, "lab_input")
+                    ithChest.neighbors[j] = nil
+                    break
                 end
-                
-                transfer(inv, dest.get_inventory(defines.inventory.fuel), nil, 5, "fuel")
             end
         else
             state.requesterChests[i] = nil
+            break
         end
     end
 end
