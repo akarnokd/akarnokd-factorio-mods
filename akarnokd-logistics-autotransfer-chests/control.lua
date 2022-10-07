@@ -27,13 +27,17 @@ end)
 
 function getOrCreateProviderGui(player)
     local frame = player.gui.relative["akarnokd-latc-gui-frame"]
-    if not frame or not frame.valid then
+    if not frame or (not frame.valid) or (not frame["akarnokd-latc-gui-textfield-set1"]) then
         local anchor = {gui = defines.relative_gui_type.container_gui, position = defines.relative_gui_position.bottom}
+        if frame then
+            frame.destroy()
+        end
         frame = player.gui.relative.add{type="frame", anchor=anchor, name="akarnokd-latc-gui-frame"}
         
         frame.add{type="label", caption={"akarnokd-latc-gui.limit"}}
         frame.add{type="textfield", name="akarnokd-latc-gui-textfield", text="0", numeric=true, allow_decimal=false, allow_negative=false}
-        frame.add{type="button", name="akarnokd-latc-gui-textfield-unlimited", caption={"akarnokd-latc-gui.unlimited"}}
+        frame.add{type="button", name="akarnokd-latc-gui-textfield-unlimited", caption={"akarnokd-latc-gui.default"}}
+        frame.add{type="button", name="akarnokd-latc-gui-textfield-set1", caption="1"}
         frame.add{type="button", name="akarnokd-latc-gui-textfield-set10", caption="10"}
         frame.add{type="button", name="akarnokd-latc-gui-textfield-set100", caption="100"}
         frame.add{type="button", name="akarnokd-latc-gui-textfield-set1000", caption="1000"}
@@ -154,6 +158,10 @@ script.on_event(defines.events.on_gui_click, function(event)
     if event.element.name == "akarnokd-latc-gui-textfield-unlimited" then
         frame["akarnokd-latc-gui-textfield"].text = "0"
         updateLimit(entity, 0)
+    end
+    if event.element.name == "akarnokd-latc-gui-textfield-set1" then
+        frame["akarnokd-latc-gui-textfield"].text = "1"
+        updateLimit(entity, 1)
     end
     if event.element.name == "akarnokd-latc-gui-textfield-set10" then
         frame["akarnokd-latc-gui-textfield"].text = "10"
