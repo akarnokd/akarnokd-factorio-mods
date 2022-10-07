@@ -3,13 +3,15 @@ local supportedEntityTypes = {
     ["boiler"] = true
 }
 
+local replaceTimeout = 60
+
 script.on_event({
     defines.events.on_built_entity,
     defines.events.on_robot_built_entity,
     defines.events.script_raised_built,
     defines.events.script_raised_revive,
 }, function(event)
-    handleEntityPlaced(event.created_entity)
+    handleEntityPlaced(event.created_entity, event.tick)
 end)
 
 script.on_event({
@@ -18,11 +20,11 @@ script.on_event({
     defines.events.on_robot_pre_mined,
     defines.events.script_raised_destroy
 }, function(event)
-    handleEntityRemoved(event.entity)
+    handleEntityRemoved(event.entity, event.tick)
 end)
 
 script.on_event(defines.events.on_tick, function(event)
-    handleTick()
+    handleTick(event.tick)
 end)
 
 function getOrCreateProviderGui(player)
@@ -323,7 +325,7 @@ function updateLimit(entity, amount)
     if entity and (entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active") then
         local state = ensureGlobal()
         state.latcLimits[entity.unit_number] = amount
-        log(entity.name .. " new limit " .. amount .. " ID " .. entity.unit_number)
+        log(entity.name .. " new limit " .. tostring(amount) .. " ID " .. entity.unit_number)
     end
 end
 
@@ -356,7 +358,7 @@ function isSupported(entity)
         and entity.prototype.name ~= "character"
 end
 
-function handleEntityPlaced(entity)
+function handleEntityPlaced(entity, tick)
     if entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active" then
 
         local state = ensureGlobal()
@@ -367,6 +369,16 @@ function handleEntityPlaced(entity)
         chestData.neighbors = getNearbyMachines(entity)
         
         state.providerChests[#state.providerChests + 1] = chestData
+        
+        local posStr = positionToString(entity.bounding_box.left_top)
+        local prev = state.replaceProviders[posStr]
+        if prev then
+            --log("Found old provider at " .. posStr .. " Old tick " .. prev.tick .. " now " .. tick)
+            if prev.tick + replaceTimeout >= tick then
+                updateLimit(entity, prev.amount)
+            end
+            state.replaceProviders[posStr] = nil
+        end
 
     elseif entity.name == "akarnokd-latc-requester" then
         
@@ -397,11 +409,19 @@ function handleEntityPlaced(entity)
     end
 end
 
-function handleEntityRemoved(entity)
+function handleEntityRemoved(entity, tick)
     if entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active" then
         local state = ensureGlobal()
         for i, ithChest in pairs(state.providerChests) do
             if ithChest.chest == entity then
+            
+                local posStr = positionToString(entity.bounding_box.left_top)
+                state.replaceProviders[posStr] = {
+                    tick = tick,
+                    amount = state.latcLimits[entity.unit_number]
+                }
+                --log("Removed provider at " .. posStr)
+                
                 state.providerChests[i] = nil
             end
         end
@@ -431,6 +451,10 @@ function handleEntityRemoved(entity)
     end
 end
 
+function positionToString(pos)
+    return pos.x .. ":" .. pos.y
+end
+
 function ensureGlobal()
     if not global.akarnokdLatc then
         global.akarnokdLatc = { }
@@ -442,6 +466,9 @@ function ensureGlobal()
     end
     if not global.akarnokdLatc.thresholds then
         global.akarnokdLatc.thresholds = { }
+    end
+    if not global.akarnokdLatc.replaceProviders then
+        global.akarnokdLatc.replaceProviders = { }
     end
     return global.akarnokdLatc
 end
@@ -562,7 +589,7 @@ function isOutputEmpty(dest)
     return true
 end
 
-function handleTick()
+function handleTick(tick)
     local state = ensureGlobal()
     local maxItems = settings.global["akarnokd-latc-max-items"].value
     local insertIfEmpty = settings.global["akarnokd-latc-insert-if-empty-output"].value
@@ -643,6 +670,14 @@ function handleTick()
             end
         else
             state.requesterChests[i] = nil
+            break
+        end
+    end
+    
+    -- remove remembered removed active/passive chests
+    for i, item in pairs(state.replaceProviders) do
+        if item.tick + replaceTimeout < tick then
+            state.replaceProviders[i] = nil
             break
         end
     end
