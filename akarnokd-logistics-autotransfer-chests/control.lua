@@ -537,23 +537,22 @@ end
 
 function transfer(sourceInventory, destinationInventory, recipe, alimit, tag)
     if not destinationInventory then return end
+
+    local limits = { }
+    if recipe then
+        for _, ingredient in pairs(recipe.ingredients) do
+            if alimit then
+                limits[ingredient.name] = math.min(alimit, ingredient.amount + 1)
+            else
+                limits[ingredient.name] = ingredient.amount + 1
+            end
+        end
+    end
     
     local content = sourceInventory.get_contents()
     for name, count in pairs(content) do
-        local limit = alimit
+        local limit = limits[name] or alimit
         local toInsert = count
-        if recipe then
-            for _, ingredient in pairs(recipe.ingredients) do
-                if ingredient.name == name then
-                    if limit then
-                        limit = math.min(limit, ingredient.amount + 1)
-                    else
-                        limit = ingredient.amount + 1
-                    end
-                    break
-                end
-            end
-        end
 
         if limit then
             local currentCount = destinationInventory.get_item_count(name)
@@ -571,25 +570,38 @@ function transfer(sourceInventory, destinationInventory, recipe, alimit, tag)
     end
 end
 
-function canHaveRecipe(entity)
-    return entity.type == "assembling-machine"
-        or entity.type == "furnace"
-        or entity.type == "rocket-silo"
+function handleThresholdChests(state, ithChest)
+    -- handle threshold-based requesting
+    local trs = state.thresholds[ithChest.chest.unit_number]
+    if trs and trs.enabled and ithChest.chest.logistic_network then
+        for ri = 1, ithChest.chest.request_slot_count do
+            local rs = ithChest.chest.get_request_slot(ri)
+            if rs then
+                local num = ithChest.chest.logistic_network.get_item_count(rs.name, "providers")
+                if num >= trs.minValue and num <= trs.maxValue then
+                    if rs.count ~= trs.request then
+                        ithChest.chest.set_request_slot({ name = rs.name, count = trs.request }, ri)
+                    end
+                else
+                    if rs.count ~= 0 then
+                        ithChest.chest.set_request_slot({ name = rs.name, count = 0 }, ri ) 
+                    end
+                end
+            end
+        end
+    end
 end
 
-function isOutputEmpty(dest)
-    local outputInv = dest.get_inventory(defines.inventory.assembling_machine_output)
-    if outputInv then
-        return outputInv.is_empty()
-    end
-    outputInv = source.get_inventory(defines.inventory.furnace_result)
-    if outputInv then
-        return outputInv.is_empty()
+function invEmpty(inv)
+    local slots = #inv
+    if slots > 0 then
+        return inv[1].count == 0
     end
     return true
 end
 
 function handleTick(tick)
+
     local state = ensureGlobal()
     local maxItems = settings.global["akarnokd-latc-max-items"].value
     local insertIfEmpty = settings.global["akarnokd-latc-insert-if-empty-output"].value
@@ -622,42 +634,28 @@ function handleTick(tick)
             break
         end
     end
+
     for i, ithChest in pairs(state.requesterChests) do
         if ithChest.chest.valid then
         
-            -- handle threshold-based requesting
-            local trs = state.thresholds[ithChest.chest.unit_number]
-            if trs and trs.enabled and ithChest.chest.logistic_network then
-                for ri = 1, ithChest.chest.request_slot_count do
-                    local rs = ithChest.chest.get_request_slot(ri)
-                    if rs then
-                        local num = ithChest.chest.logistic_network.get_item_count(rs.name, "providers")
-                        if num >= trs.minValue and num <= trs.maxValue then
-                            if rs.count ~= trs.request then
-                                ithChest.chest.set_request_slot({ name = rs.name, count = trs.request }, ri)
-                            end
-                        else
-                            if rs.count ~= 0 then
-                                ithChest.chest.set_request_slot({ name = rs.name, count = 0 }, ri ) 
-                            end
-                        end
-                    end
-                end
-            end
+            handleThresholdChests(state, ithChest)
             
             -- handle inserting into neighbors
             local inv = ithChest.chest.get_inventory(defines.inventory.chest)
             for j, dest in pairs(ithChest.neighbors) do
                 if dest.valid then
-                    local rec = nil
-                    if canHaveRecipe(dest) then
-                        rec = dest.get_recipe()
-                        
-                        if not insertIfEmpty or isOutputEmpty(dest) then
-                            transfer(inv, dest.get_inventory(defines.inventory.furnace_source), rec, 1000, "furnace_source")
-                            transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), rec, 1000, "assembling_machine_input")
-                            transfer(inv, dest.get_inventory(defines.inventory.rocket_silo_input), rec, 1000, "rocket_silo_input")
+                    if dest.type == "assembling-machine" then
+                        local outputInv = dest.get_inventory(defines.inventory.assembling_machine_output)
+                        if (not insertIfEmpty) or (not outputInv) or invEmpty(outputInv) then
+                            transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), dest.get_recipe(), 1000, "assembling_machine_input")
                         end
+                    elseif dest.type == "furnace" then
+                        local outputInv = source.get_inventory(defines.inventory.furnace_result)
+                        if (not insertIfEmpty) or (not outputInv) or invEmpty(outputInv) then
+                            transfer(inv, dest.get_inventory(defines.inventory.furnace_source), dest.get_recipe(), 1000, "furnace_source")
+                        end
+                    elseif dest.type == "rocket-silo" then
+                        transfer(inv, dest.get_inventory(defines.inventory.rocket_silo_input), dest.get_recipe(), 1000, "rocket_silo_input")
                     else
                         transfer(inv, dest.get_inventory(defines.inventory.lab_input), nil, 5, "lab_input")
                     end
