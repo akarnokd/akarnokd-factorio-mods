@@ -13,4 +13,11 @@ data:extend({
         setting_type = "runtime-global",
         default_value = true,
     },
+    {
+        type = "int-setting",
+        name = "akarnokd-latc-recipe-factor",
+        order = "c",
+        setting_type = "runtime-global",
+        default_value = 1
+    },
 })

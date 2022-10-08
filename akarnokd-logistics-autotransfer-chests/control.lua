@@ -589,16 +589,16 @@ function findOutputInventories(source)
     return result
 end
 
-function transfer(sourceInventory, destinationInventory, recipe, alimit, tag)
+function transfer(sourceInventory, destinationInventory, recipe, alimit, tag, factor)
     if not destinationInventory then return end
 
     local limits = { }
     if recipe then
         for _, ingredient in pairs(recipe.ingredients) do
             if alimit then
-                limits[ingredient.name] = math.min(alimit, ingredient.amount + 1)
+                limits[ingredient.name] = math.min(alimit, factor * ingredient.amount + 1)
             else
-                limits[ingredient.name] = ingredient.amount + 1
+                limits[ingredient.name] = factor * ingredient.amount + 1
             end
         end
     end
@@ -658,6 +658,7 @@ function handleTick(tick)
 
     local state = ensureGlobal()
     local maxItems = settings.global["akarnokd-latc-max-items"].value
+    local recipeFactor = settings.global["akarnokd-latc-recipe-factor"].value or 1
     local insertIfEmpty = settings.global["akarnokd-latc-insert-if-empty-output"].value
 
     for i, ithChest in pairs(state.providerChests) do
@@ -676,7 +677,7 @@ function handleTick(tick)
                 if source.valid then
                     local outputs = findOutputInventories(source)
                     for _, output in pairs(outputs) do
-                        transfer(output, inv, nil, maxItemInChest, "outputs")
+                        transfer(output, inv, nil, maxItemInChest, "outputs", 1)
                     end
                 else
                     ithChest.neighbors[j] = nil
@@ -701,15 +702,15 @@ function handleTick(tick)
                     if dest.type == "assembling-machine" then
                         local outputInv = dest.get_inventory(defines.inventory.assembling_machine_output)
                         if (not insertIfEmpty) or (not outputInv) or invEmpty(outputInv) then
-                            transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), dest.get_recipe(), 1000, "assembling_machine_input")
+                            transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), dest.get_recipe(), 1000, "assembling_machine_input", recipeFactor)
                         end
                     elseif dest.type == "furnace" then
                         local outputInv = dest.get_inventory(defines.inventory.furnace_result)
                         if (not insertIfEmpty) or (not outputInv) or invEmpty(outputInv) then
-                            transfer(inv, dest.get_inventory(defines.inventory.furnace_source), dest.get_recipe(), 1000, "furnace_source")
+                            transfer(inv, dest.get_inventory(defines.inventory.furnace_source), dest.get_recipe(), 1000, "furnace_source", recipeFactor)
                         end
                     elseif dest.type == "rocket-silo" then
-                        transfer(inv, dest.get_inventory(defines.inventory.rocket_silo_input), dest.get_recipe(), 1000, "rocket_silo_input")
+                        transfer(inv, dest.get_inventory(defines.inventory.rocket_silo_input), dest.get_recipe(), 1000, "rocket_silo_input", recipeFactor)
                     else
                         transfer(inv, dest.get_inventory(defines.inventory.lab_input), nil, 5, "lab_input")
                     end
