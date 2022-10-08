@@ -11,7 +11,7 @@ script.on_event({
     defines.events.script_raised_built,
     defines.events.script_raised_revive,
 }, function(event)
-    handleEntityPlaced(event.created_entity, event.tick)
+    handleEntityPlaced(event.created_entity, event.tick, event.tags)
 end)
 
 script.on_event({
@@ -295,6 +295,48 @@ script.on_event(defines.events.on_gui_checked_state_changed, function(event)
     end
 end)
 
+script.on_event(defines.events.on_player_setup_blueprint, function(event)
+    local player = game.get_player(event.player_index)
+    local bp = player.blueprint_to_setup
+    if not bp.valid_for_read then
+        bp = player.cursor_stack
+    end
+    if bp and bp.valid then
+        local bp_ents = bp.get_blueprint_entities()
+        if bp_ents then
+            local source = event.mapping.get()
+            for i, entity in pairs(bp_ents) do
+                local sourceEntity = source[entity.entity_number]
+                if sourceEntity then
+                    if sourceEntity.name == "akarnokd-latc-active" or sourceEntity.name == "akarnokd-latc-passive" then
+                        if not entity.tags then
+                            entity.tags = { }
+                        end
+                        local v = getLimit(sourceEntity)
+                        entity.tags["latcLimit"] = v
+                        log("Tagging " .. entity.entity_number .. " of " .. sourceEntity.name .. " with " .. tostring(v))
+                    elseif sourceEntity.name == "akarnokd-latc-requester" then
+                        local trs = getThreshold(sourceEntity)
+                        if trs then
+                            if not entity.tags then
+                                entity.tags = { }
+                            end
+                            entity.tags["latcThreshold"] = trs
+                            log("Tagging " .. entity.entity_number .. " of " .. sourceEntity.name .. " for " 
+                                .. tostring(trs.enabled) .. ", "
+                                .. tostring(trs.minValue) .. ", "
+                                .. tostring(trs.maxValue) .. ", "
+                                .. tostring(trs.request) .. ", "
+                            )
+                        end
+                    end
+                end
+            end
+            bp.set_blueprint_entities(bp_ents)
+        end
+    end
+end)
+
 function updateThreshold(entity, enabled, minValue, maxValue, request)
     local state = ensureGlobal()
     local trs = state.thresholds[entity.unit_number]
@@ -358,7 +400,7 @@ function isSupported(entity)
         and entity.prototype.name ~= "character"
 end
 
-function handleEntityPlaced(entity, tick)
+function handleEntityPlaced(entity, tick, tags)
     if entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active" then
 
         local state = ensureGlobal()
@@ -379,6 +421,12 @@ function handleEntityPlaced(entity, tick)
             end
             state.replaceProviders[posStr] = nil
         end
+        
+        local tg = tags or entity.tags
+        log("Tags " .. tostring(tg))
+        if tg and tg.latcLimit then
+            updateLimit(entity, tg.latcLimit)
+        end
 
     elseif entity.name == "akarnokd-latc-requester" then
         
@@ -389,6 +437,12 @@ function handleEntityPlaced(entity, tick)
         }
         chestData.neighbors = getNearbyMachines(entity)
         state.requesterChests[#state.requesterChests + 1] = chestData
+        
+        local tg = tags or entity.tags
+        log("Tags " .. tostring(tg))
+        if tg and tg.latcThreshold then
+            updateThreshold(entity, tg.latcThreshold.enabled, tg.latcThreshold.minValue, tg.latcThreshold.maxValue, tg.latcThreshold.request)
+        end
         
     elseif isSupported(entity) then
         --log("AutoTransfer to/from " .. entity.name)
