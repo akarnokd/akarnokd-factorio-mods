@@ -23,10 +23,6 @@ script.on_event({
     handleEntityRemoved(event.entity, event.tick)
 end)
 
-script.on_event(defines.events.on_tick, function(event)
-    handleTick(event.tick)
-end)
-
 function getOrCreateProviderGui(player)
     local frame = player.gui.relative["akarnokd-latc-gui-frame"]
     if (not frame) or (not frame.valid) then
@@ -572,28 +568,14 @@ function getNearbyChests(entity)
     return nextEntities
 end
 
-function findOutputInventories(source)
-    local result = { }
-    local inv = source.get_inventory(defines.inventory.furnace_result)
-    if inv then 
-        result[#result + 1] = inv
-    end
-    inv = source.get_inventory(defines.inventory.assembling_machine_output)
-    if inv then
-        result[#result + 1] = inv
-    end
-    inv = source.get_inventory(defines.inventory.burnt_result)
-    if inv then 
-        result[#result + 1] = inv
-    end
-    return result
-end
-
 function transfer(sourceInventory, destinationInventory, recipe, alimit, tag, factor)
-    if not destinationInventory then return end
+    if (not sourceInventory) or (not destinationInventory) then return end
+
+    --log(tag .. " - begin")
 
     local limits = { }
     if recipe then
+        --[[
         for _, ingredient in pairs(recipe.ingredients) do
             if alimit then
                 limits[ingredient.name] = math.min(alimit, factor * ingredient.amount + 1)
@@ -601,24 +583,51 @@ function transfer(sourceInventory, destinationInventory, recipe, alimit, tag, fa
                 limits[ingredient.name] = factor * ingredient.amount + 1
             end
         end
+        ]]--
+        transferWithRecipe(sourceInventory, destinationInventory, recipe, alimit, tag, factor)
+        return
     end
     
     local content = sourceInventory.get_contents()
     for name, count in pairs(content) do
-        local limit = limits[name] or alimit
-        local toInsert = count
-
-        if limit then
-            local currentCount = destinationInventory.get_item_count(name)
-            if currentCount + toInsert > limit then
-               toInsert = limit - currentCount
+        local currentCount = destinationInventory.get_item_count(name)
+        if currentCount < alimit then
+            local toInsert = math.min(count, alimit - currentCount)
+            toInsert = math.min(toInsert, destinationInventory.get_insertable_count(name))
+        
+            if toInsert > 0 then
+                local inserted = destinationInventory.insert({ name = name, count = toInsert })
+                if inserted > 0 then
+                    --log(tag .. " | Transfer " .. name .. " x " .. toInsert .. " (" .. inserted .. ") " .. tag)
+                    sourceInventory.remove({ name = name, count = inserted })
+                else
+                    --log(tag .. " | Insertion failed? " .. name .. " x " .. toInsert .. ", limit " .. limit .. ", count " .. currentCount)
+                end
             end
         end
-        if toInsert > 0 then
-            inserted = destinationInventory.insert({ name = name, count = toInsert })
-            if inserted > 0 then
-                --log(tag .. " | Transfer " .. name .. " x " .. toInsert .. " (" .. inserted .. ") " .. tag)
-                sourceInventory.remove({ name = name, count = inserted })
+    end
+    --log(tag .. " - end")
+end
+
+function transferWithRecipe(sourceInventory, destinationInventory, recipe, alimit, tag, factor) 
+    local sourceContent = sourceInventory.get_contents()
+    local destinationContent = destinationInventory.get_contents()
+
+    for _, ingredient in pairs(recipe.ingredients) do
+        local name = ingredient.name
+        local available = sourceContent[name] or 0
+        if available > 0 then
+            local present = destinationContent[name] or 0
+            local limit = math.min(alimit, factor * ingredient.amount + 1)
+            
+            if present < limit then
+                local toInsert = math.min(available, limit - present)
+                if toInsert > 0 then
+                    local inserted = destinationInventory.insert({ name = name, count = toInsert })
+                    if inserted > 0 then
+                        sourceInventory.remove({ name = name, count = inserted })
+                    end
+                end
             end
         end
     end
@@ -647,12 +656,19 @@ function handleThresholdChests(state, ithChest)
 end
 
 function invEmpty(inv)
+    --[[
     local slots = #inv
     if slots > 0 then
         return inv[1].count == 0
     end
     return true
+    ]]--
+    return inv.is_empty()
 end
+
+script.on_event(defines.events.on_tick, function(event)
+    handleTick(event.tick)
+end)
 
 function handleTick(tick)
 
@@ -660,37 +676,27 @@ function handleTick(tick)
     local maxItems = settings.global["akarnokd-latc-max-items"].value
     local recipeFactor = settings.global["akarnokd-latc-recipe-factor"].value or 1
     local insertIfEmpty = settings.global["akarnokd-latc-insert-if-empty-output"].value
+    local providerTick = settings.global["akarnokd-latc-provider-tick"].value
+    local requesterTick = settings.global["akarnokd-latc-provider-tick"].value
 
-    for i, ithChest in pairs(state.providerChests) do
-        if ithChest.chest.valid then
-            local inv = ithChest.chest.get_inventory(defines.inventory.chest)
-            local maxItemInChest = maxItems
-            local latcLimit = getLimit(ithChest.chest)
-            if latcLimit then
-                if ithChest.latcLimit == 0 then
-                    maxItemInChest = nil
-                else
-                    maxItemInChest = latcLimit
-                end
-            end
-            for j, source in pairs(ithChest.neighbors) do
-                if source.valid then
-                    local outputs = findOutputInventories(source)
-                    for _, output in pairs(outputs) do
-                        transfer(output, inv, nil, maxItemInChest, "outputs", 1)
-                    end
-                else
-                    ithChest.neighbors[j] = nil
-                    break
-                end
-            end
-        else
-            state.providerChests[i] = nil
+    if tick % providerTick == 0 then
+        handleProviders(state, maxItems)
+    end
+    
+    if tick % requesterTick == 0 then
+        handleRequesters(state, recipeFactor, insertIfEmpty)
+    end
+
+    -- remove remembered removed active/passive chests
+    for i, item in pairs(state.replaceProviders) do
+        if item.tick + replaceTimeout < tick then
+            state.replaceProviders[i] = nil
             break
         end
     end
+end
 
-
+function handleRequesters(state, recipeFactor, insertIfEmpty)
     for i, ithChest in pairs(state.requesterChests) do
         if ithChest.chest.valid then
     
@@ -727,11 +733,29 @@ function handleTick(tick)
             break
         end
     end
-    
-    -- remove remembered removed active/passive chests
-    for i, item in pairs(state.replaceProviders) do
-        if item.tick + replaceTimeout < tick then
-            state.replaceProviders[i] = nil
+end
+
+function handleProviders(state, maxItems)
+    for i, ithChest in pairs(state.providerChests) do
+        if ithChest.chest.valid then
+            local inv = ithChest.chest.get_inventory(defines.inventory.chest)
+            local maxItemInChest = getLimit(ithChest.chest) or maxItems
+            
+            for j, source in pairs(ithChest.neighbors) do
+                if source.valid then
+                    if source.type == "furnace" then
+                        transfer(source.get_inventory(defines.inventory.furnace_result), inv, nil, maxItemInChest, "furnace_result", 1)
+                    elseif source.type == "assembling-machine" then
+                        transfer(source.get_inventory(defines.inventory.assembling_machine_output), inv, nil, maxItemInChest, "assembling_machine_output", 1)
+                    end
+                    transfer(source.get_inventory(defines.inventory.burnt_result), inv, nil, maxItemInChest, "burnt_result", 1)
+                else
+                    ithChest.neighbors[j] = nil
+                    break
+                end
+            end
+        else
+            state.providerChests[i] = nil
             break
         end
     end
