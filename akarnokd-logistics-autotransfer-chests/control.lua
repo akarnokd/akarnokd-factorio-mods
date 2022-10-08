@@ -704,7 +704,7 @@ function handleTick(tick)
                             transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), dest.get_recipe(), 1000, "assembling_machine_input")
                         end
                     elseif dest.type == "furnace" then
-                        local outputInv = source.get_inventory(defines.inventory.furnace_result)
+                        local outputInv = dest.get_inventory(defines.inventory.furnace_result)
                         if (not insertIfEmpty) or (not outputInv) or invEmpty(outputInv) then
                             transfer(inv, dest.get_inventory(defines.inventory.furnace_source), dest.get_recipe(), 1000, "furnace_source")
                         end
