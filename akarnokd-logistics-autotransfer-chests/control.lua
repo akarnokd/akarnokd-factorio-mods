@@ -690,9 +690,10 @@ function handleTick(tick)
         end
     end
 
+
     for i, ithChest in pairs(state.requesterChests) do
         if ithChest.chest.valid then
-        
+    
             handleThresholdChests(state, ithChest)
             
             -- handle inserting into neighbors
@@ -735,3 +736,7 @@ function handleTick(tick)
         end
     end
 end
+
+--[[
+/c __akarnokd-logistics-autotransfer-chests__ game.write_file("global_data.txt", serpent.block(global))
+]]--
