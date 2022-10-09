@@ -397,6 +397,8 @@ function isSupported(entity)
 end
 
 function handleEntityPlaced(entity, tick, tags)
+    if not entity then return end
+    
     if entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active" then
 
         local state = ensureGlobal()
