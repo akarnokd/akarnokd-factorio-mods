@@ -47,11 +47,11 @@ for _, pertype in pairs(data.raw) do
     end
 
     if item.speed and item.max_energy and item.energy_per_tick and item.energy_per_move and item.max_payload_size then
-       item.speed = 0.5
+       item.speed = droneSpeed
        item.max_energy = "1.5MJ"
        item.energy_per_tick = "0.001kJ"
        item.energy_per_move = "0.01kJ"
-       item.max_payload_size = 50
+       item.max_payload_size = droneCapacity
     end
     
     if item.maximum_wire_distance and item.supply_area_distance then
