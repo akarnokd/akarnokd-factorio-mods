@@ -69,6 +69,11 @@ function getOrCreateRequesterGui(player)
         thresholdPanel.add{type="textfield", name="akarnokd-latc-gui-provider-threshold-max", text="1000000", numeric=true, allow_decimal=false, allow_negative=false}
         thresholdPanel.add{type="label", caption={"akarnokd-latc-gui.request"}}
         thresholdPanel.add{type="textfield", name="akarnokd-latc-gui-provider-threshold-request", text="10", numeric=true, allow_decimal=false, allow_negative=false}
+        
+        local insertFactor = parent.add{type="flow", name="akarnokd-latc-gui-requester-factor-panel", direction="horizontal"}
+        insertFactor.add{type="label", caption={"akarnokd-latc-gui.factor"}}
+        insertFactor.add{type="textfield", name="akarnokd-latc-gui-requester-factor", text="0", numeric=true, allow_decimal=false, allow_negative=false}
+        insertFactor.add{type="label", name="akarnokd-latc-gui-requester-factor-default", caption=""}
     end
     return frame
 end
@@ -140,6 +145,19 @@ script.on_event(defines.events.on_gui_opened, function(event)
                 panel["akarnokd-latc-gui-provider-threshold-min"].text = "0"
                 panel["akarnokd-latc-gui-provider-threshold-max"].text = "1000000"
                 panel["akarnokd-latc-gui-provider-threshold-request"].text = "10"
+            end
+            
+            panel = frame["akarnokd-latc-gui-provider-parent"]["akarnokd-latc-gui-requester-factor-panel"]
+            local f = getFactor(event.entity)
+            if f then
+                panel["akarnokd-latc-gui-requester-factor"].text = tostring(f)
+            else
+                panel["akarnokd-latc-gui-requester-factor"].text = "0"
+            end
+            local recipeFactor = settings.global["akarnokd-latc-recipe-factor"].value or 1
+            local fl = panel["akarnokd-latc-gui-requester-factor-default"]
+            if fl then
+                fl.caption = "(" .. recipeFactor .. "x)"
             end
         else
             frame.destroy()
@@ -281,7 +299,13 @@ script.on_event(defines.events.on_gui_text_changed, function(event)
         local entity = state.currentGuiEntity
         updateThreshold(entity, nil, nil, nil, tonumber(event.element.text))
     end
+    if event.element.name == "akarnokd-latc-gui-requester-factor" then
+        local state = ensureGlobal()
+        local entity = state.currentGuiEntity
+        updateFactor(entity, tonumber(event.element.text))
+    end
 end)
+
 
 script.on_event(defines.events.on_gui_checked_state_changed, function(event)
     if event.element.name == "akarnokd-latc-gui-provider-threshold-enabled" then
@@ -386,6 +410,20 @@ function getLimit(entity)
     return nil
 end
 
+function getFactor(entity)
+    if entity and (entity.name == "akarnokd-latc-requester") then
+        local state = ensureGlobal()
+        return state.factors[entity.unit_number]
+    end
+    return nil
+end
+
+function updateFactor(entity, value)
+    if entity and (entity.name == "akarnokd-latc-requester") then
+        local state = ensureGlobal()
+        state.factors[entity.unit_number] = value
+    end
+end
 
 function isSupported(entity)
     return (entity.prototype.mining_speed 
@@ -521,6 +559,9 @@ function ensureGlobal()
     end
     if not global.akarnokdLatc.replaceProviders then
         global.akarnokdLatc.replaceProviders = { }
+    end
+    if not global.akarnokdLatc.factors then
+        global.akarnokdLatc.factors = { }
     end
     return global.akarnokdLatc
 end
@@ -680,13 +721,16 @@ function handleTick(tick)
     local insertIfEmpty = settings.global["akarnokd-latc-insert-if-empty-output"].value
     local providerTick = settings.global["akarnokd-latc-provider-tick"].value
     local requesterTick = settings.global["akarnokd-latc-provider-tick"].value
+    local maxPerSegment = settings.global["akarnokd-latc-max-per-segment"].value
 
-    if tick % providerTick == 0 then
-        handleProviders(state, maxItems)
+    local ti = tick % providerTick
+    if ti == 0 then
+        handleProviders(state, maxItems, maxPerSegment)
     end
     
-    if tick % requesterTick == 0 then
-        handleRequesters(state, recipeFactor, insertIfEmpty)
+    ti = tick % requesterTick
+    if ti == 0 then
+        handleRequesters(state, recipeFactor, insertIfEmpty, maxPerSegment)
     end
 
     -- remove remembered removed active/passive chests
@@ -698,11 +742,63 @@ function handleTick(tick)
     end
 end
 
-function handleRequesters(state, recipeFactor, insertIfEmpty)
-    for i, ithChest in pairs(state.requesterChests) do
-        if ithChest.chest.valid then
+local requesterChestSegmenting = {
+    segments = nil,
+    currentSegment = 1
+}
+
+local providerChestSegmenting = {
+    segments = nil,
+    currentSegment = 1
+}
+
+function handleSegmentation(items, maxPerSegment, seg)
+    if seg.segments and #seg.segments < seg.currentSegment then
+        seg.segments = nil
+    end
+    if not seg.segments then
+        local i = 0
+        seg.segments = { }
+        seg.currentSegment = 1
+        local currentArray = { }
+        for j, ithChest in pairs(items) do
+            if ithChest.chest.valid then
+                if i == 0 then
+                    currentArray = { }
+                    seg.segments[#seg.segments + 1] = currentArray
+                end
+            
+                currentArray[#currentArray + 1] = ithChest
+                i = i + 1
+                if i == maxPerSegment then
+                    i = 0
+                end
+            else
+                items[j] = nil
+            end
+        end
+    end
     
+    if #seg.segments == 0 then return nil end
+    
+    local segment = seg.segments[seg.currentSegment]
+    seg.currentSegment = seg.currentSegment + 1
+    return segment
+end
+
+function handleRequesters(state, aRecipeFactor, insertIfEmpty, maxPerSegment)
+    
+    local segment = handleSegmentation(state.requesterChests, maxPerSegment, requesterChestSegmenting)
+    if not segment then return end
+
+    for i, ithChest in pairs(segment) do
+        if ithChest.chest.valid then
             handleThresholdChests(state, ithChest)
+                
+            local recipeFactor = getFactor(ithChest.chest)
+            if not recipeFactor or recipeFactor == 0 then
+                recipeFactor = aRecipeFactor
+            end
             
             -- handle inserting into neighbors
             local inv = ithChest.chest.get_inventory(defines.inventory.chest)
@@ -729,16 +825,19 @@ function handleRequesters(state, recipeFactor, insertIfEmpty)
                     ithChest.neighbors[j] = nil
                     break
                 end
-            end
+            end    
         else
-            state.requesterChests[i] = nil
-            break
+            --state.requesterChests[i] = nil
+            --break
         end
     end
 end
 
-function handleProviders(state, maxItems)
-    for i, ithChest in pairs(state.providerChests) do
+function handleProviders(state, maxItems, maxPerSegment)
+    local segment = handleSegmentation(state.providerChests, maxPerSegment, providerChestSegmenting)
+    if not segment then return end
+
+    for i, ithChest in pairs(segment) do
         if ithChest.chest.valid then
             local inv = ithChest.chest.get_inventory(defines.inventory.chest)
             local maxItemInChest = getLimit(ithChest.chest) or maxItems
@@ -757,8 +856,8 @@ function handleProviders(state, maxItems)
                 end
             end
         else
-            state.providerChests[i] = nil
-            break
+            --state.providerChests[i] = nil
+            --break
         end
     end
 end

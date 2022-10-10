@@ -37,4 +37,12 @@ data:extend({
         min_value = 1,
         default_value = 1
     },
+    {
+        type = "int-setting",
+        name = "akarnokd-latc-max-per-segment",
+        order = "f",
+        setting_type = "runtime-global",
+        min_value = 1,
+        default_value = 200
+    },
 })
