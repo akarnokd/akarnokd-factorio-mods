@@ -23,7 +23,10 @@ for _, pertype in pairs(data.raw) do
 
     if stackSizeEnable then
         if item.stack_size and (not item.flags or not contains(item.flags, "not-stackable"))
-            and item.name ~= "upgrade-planner" and item.name ~= "blueprint-book"
+            and item.name ~= "upgrade-planner" 
+            and item.name ~= "blueprint-book"
+            and item.name ~= "spidertron-remote"
+            and item.name ~= "nullius-mecha-remote"
             and item.name ~= "deconstruction-planner" and item.name ~= "item-with-inventory"
             and not item.inventory_size_bonus
             and not item.equipment_grid
