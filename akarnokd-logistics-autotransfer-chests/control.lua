@@ -679,7 +679,7 @@ end
 function handleThresholdChests(state, ithChest)
     -- handle threshold-based requesting
     local trs = state.thresholds[ithChest.chest.unit_number]
-    if trs and trs.enabled and ithChest.chest.logistic_network then
+    if trs and trs.enabled and ithChest.chest.logistic_network and trs.request > 0 then
         for ri = 1, ithChest.chest.request_slot_count do
             local rs = ithChest.chest.get_request_slot(ri)
             if rs then
