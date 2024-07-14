@@ -336,11 +336,11 @@ script.on_event(defines.events.on_player_setup_blueprint, function(event)
                         entity.tags["latcLimit"] = v
                         log("Tagging " .. entity.entity_number .. " of " .. sourceEntity.name .. " with " .. tostring(v))
                     elseif sourceEntity.name == "akarnokd-latc-requester" then
+                        if not entity.tags then
+                            entity.tags = { }
+                        end
                         local trs = getThreshold(sourceEntity)
                         if trs then
-                            if not entity.tags then
-                                entity.tags = { }
-                            end
                             entity.tags["latcThreshold"] = trs
                             log("Tagging " .. entity.entity_number .. " of " .. sourceEntity.name .. " for " 
                                 .. tostring(trs.enabled) .. ", "
@@ -348,6 +348,11 @@ script.on_event(defines.events.on_player_setup_blueprint, function(event)
                                 .. tostring(trs.maxValue) .. ", "
                                 .. tostring(trs.request) .. ", "
                             )
+                        end
+                        local fx = getFactor(sourceEntity);
+                        if fx then
+                            entity.tags["latcFactor"] = fx
+                            log("Tagging " .. entity.entity_number .. " of " .. sourceEntity.name .. " for factor " .. tostring(fx)) 
                         end
                     end
                 end
@@ -478,6 +483,9 @@ function handleEntityPlaced(entity, tick, tags)
         log("Tags " .. tostring(tg))
         if tg and tg.latcThreshold then
             updateThreshold(entity, tg.latcThreshold.enabled, tg.latcThreshold.minValue, tg.latcThreshold.maxValue, tg.latcThreshold.request)
+        end
+        if tg and tg.latcFactor then
+            updateFactor(entity, tg.latcFactor)
         end
         
     elseif isSupported(entity) then
