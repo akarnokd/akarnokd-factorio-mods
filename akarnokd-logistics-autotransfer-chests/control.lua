@@ -262,7 +262,7 @@ script.on_event(defines.events.on_gui_click, function(event)
             local slotIdx = 1
             for _, ingredient in pairs(state.recipeCopyPaste.ingredients) do
                 if ingredient.type == "item" then
-                    state.currentGuiEntity.set_request_slot( { name = ingredient.name, count = itemMultiplier }, slotIdx )
+                    set_request_slot(state.currentGuiEntity, slotIdx, ingredient.name, itemMultiplier)
                     slotIdx = slotIdx + 1
                 end
             end
@@ -270,19 +270,23 @@ script.on_event(defines.events.on_gui_click, function(event)
             local slotIdx = 1
             for _, ingredient in pairs(state.recipeCopyPaste.ingredients) do
                 if ingredient.type == "item" then
-                    local rp = state.currentGuiEntity.get_requester_point()
-                    if rp.sections_count == 0 then
-                        rp.add_section()
-                    end
-                    local sec = rp.get_section(1)
-                    -- this got too complicated :(
-                    sec.set_slot( slotIdx, { name = ingredient.name, count = itemRecipeMultiplier * ingredient.amount })
+                    set_request_slot(state.currentGuiEntity, slotIdx, ingredient.name, itemRecipeMultiplier * ingredient.amount)
                     slotIdx = slotIdx + 1
                 end
             end
         end
     end
 end)
+
+function set_request_slot(entity, slotIdx, itemname, amount)
+    local rp = entity.get_requester_point(defines.logistic_member_index.logistic_container)
+    if rp.sections_count == 0 then
+        rp.add_section()
+    end
+    local sec = rp.get_section(1)
+    -- this got too complicated :(
+    sec.set_slot( slotIdx, { value = itemname, min = amount, max = amount })
+end
 
 script.on_event(defines.events.on_gui_text_changed, function(event)
     if event.element.name == "akarnokd-latc-gui-textfield" then
@@ -598,8 +602,10 @@ function getNearbyMachines(entity)
     local result = { }
     
     for _, item in pairs(nextEntities) do
+        log(item.prototype.name);
         if isSupported(item) then
             result[#result + 1] = item
+            log(item.prototype.name .. " supported");
         end
     end
     
@@ -700,11 +706,11 @@ function handleThresholdChests(state, ithChest)
                 local num = ithChest.chest.logistic_network.get_item_count(rs.name, "providers")
                 if num >= trs.minValue and num <= trs.maxValue then
                     if rs.count ~= trs.request then
-                        ithChest.chest.set_request_slot({ name = rs.name, count = trs.request }, ri)
+                        set_request_slot(ithChest.chest, ri, rs.name, trs.request)
                     end
                 else
                     if rs.count ~= 0 then
-                        ithChest.chest.set_request_slot({ name = rs.name, count = 0 }, ri ) 
+                        set_request_slot(ithChest.chest, ri, rs.name, 0)
                     end
                 end
             end
