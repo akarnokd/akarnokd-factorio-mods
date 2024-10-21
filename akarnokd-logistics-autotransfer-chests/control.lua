@@ -284,8 +284,24 @@ function set_request_slot(entity, slotIdx, itemname, amount)
         rp.add_section()
     end
     local sec = rp.get_section(1)
-    -- this got too complicated :(
     sec.set_slot( slotIdx, { value = itemname, min = amount })
+end
+
+function get_request_slot(entity, slotIdx)
+    local rp = entity.get_requester_point(defines.logistic_member_index.logistic_container)
+    if rp.sections_count == 0 then
+        rp.add_section()
+    end
+    local sec = rp.get_section(1)
+    return sec.get_slot( slotIdx )
+end
+
+function request_slot_count(entity)
+    local rp = entity.get_requester_point(defines.logistic_member_index.logistic_container)
+    if rp.sections_count == 0 then
+        rp.add_section()
+    end
+    return rp.get_section(1).filters_count
 end
 
 script.on_event(defines.events.on_gui_text_changed, function(event)
@@ -344,7 +360,7 @@ script.on_event(defines.events.on_player_setup_blueprint, function(event)
                         end
                         local v = getLimit(sourceEntity)
                         entity.tags["latcLimit"] = v
-                        log("Tagging " .. entity.entity_number .. " of " .. sourceEntity.name .. " with " .. tostring(v))
+                        -- log("Tagging " .. entity.entity_number .. " of " .. sourceEntity.name .. " with " .. tostring(v))
                     elseif sourceEntity.name == "akarnokd-latc-requester" then
                         if not entity.tags then
                             entity.tags = { }
@@ -362,7 +378,7 @@ script.on_event(defines.events.on_player_setup_blueprint, function(event)
                         local fx = getFactor(sourceEntity);
                         if fx then
                             entity.tags["latcFactor"] = fx
-                            log("Tagging " .. entity.entity_number .. " of " .. sourceEntity.name .. " for factor " .. tostring(fx)) 
+                            -- log("Tagging " .. entity.entity_number .. " of " .. sourceEntity.name .. " for factor " .. tostring(fx)) 
                         end
                     end
                 end
@@ -402,7 +418,7 @@ function updateLimit(entity, amount)
     if entity and (entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active") then
         local state = ensureGlobal()
         state.latcLimits[entity.unit_number] = amount
-        log(entity.name .. " new limit " .. tostring(amount) .. " ID " .. entity.unit_number)
+        -- log(entity.name .. " new limit " .. tostring(amount) .. " ID " .. entity.unit_number)
     end
 end
 
@@ -450,9 +466,9 @@ function isSupported(entity)
 end
 
 function handleEntityPlaced(entity, tick, tags)
-    log("handleEntityPlaced ")
+    -- log("handleEntityPlaced ")
     if not entity then return end
-    log("handleEntityPlaced " .. entity.name)
+    -- log("handleEntityPlaced " .. entity.name)
     if entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active" then
 
         local state = ensureGlobal()
@@ -491,7 +507,7 @@ function handleEntityPlaced(entity, tick, tags)
         state.requesterChests[#state.requesterChests + 1] = chestData
         
         local tg = tags or entity.tags
-        log("Tags " .. tostring(tg))
+        -- log("Tags " .. tostring(tg))
         if tg and tg.latcThreshold then
             updateThreshold(entity, tg.latcThreshold.enabled, tg.latcThreshold.minValue, tg.latcThreshold.maxValue, tg.latcThreshold.request)
         end
@@ -500,7 +516,7 @@ function handleEntityPlaced(entity, tick, tags)
         end
         
     elseif isSupported(entity) then
-        log("AutoTransfer to/from " .. entity.name)
+        -- log("AutoTransfer to/from " .. entity.name)
         local state = ensureGlobal()
         
         for _, item in pairs(getNearbyChests(entity)) do
@@ -603,10 +619,10 @@ function getNearbyMachines(entity)
     local result = { }
     
     for _, item in pairs(nextEntities) do
-        log(item.prototype.name);
+        -- log(item.prototype.name);
         if isSupported(item) then
             result[#result + 1] = item
-            log(item.prototype.name .. " supported");
+            -- log(item.prototype.name .. " supported");
         end
     end
     
@@ -656,16 +672,17 @@ function transfer(sourceInventory, destinationInventory, recipe, alimit, tag, fa
     for _, elem in pairs(content) do
         local name = elem.name
         local count = elem.count
-        local currentCount = destinationInventory.get_item_count(name)
+        local itemQuality = { name = elem.name, quality = elem.quality }
+        local currentCount = destinationInventory.get_item_count(itemQuality)
         if currentCount < alimit then
             local toInsert = math.min(count, alimit - currentCount)
-            toInsert = math.min(toInsert, destinationInventory.get_insertable_count(name))
+            toInsert = math.min(toInsert, destinationInventory.get_insertable_count(itemQuality))
         
             if toInsert > 0 then
-                local inserted = destinationInventory.insert({ name = name, count = toInsert })
+                local inserted = destinationInventory.insert({ name = name, quality = elem.quality, count = toInsert })
                 if inserted > 0 then
                     --log(tag .. " | Transfer " .. name .. " x " .. toInsert .. " (" .. inserted .. ") " .. tag)
-                    sourceInventory.remove({ name = name, count = inserted })
+                    sourceInventory.remove({ name = name, quality = elem.quality, count = inserted })
                 else
                     --log(tag .. " | Insertion failed? " .. name .. " x " .. toInsert .. ", limit " .. limit .. ", count " .. currentCount)
                 end
@@ -703,17 +720,18 @@ function handleThresholdChests(state, ithChest)
     -- handle threshold-based requesting
     local trs = state.thresholds[ithChest.chest.unit_number]
     if trs and trs.enabled and ithChest.chest.logistic_network and trs.request > 0 then
-        for ri = 1, ithChest.chest.request_slot_count do
-            local rs = ithChest.chest.get_request_slot(ri)
+        local rsc = request_slot_count(ithChest.chest)
+        for ri = 1, rsc do
+            local rs = get_request_slot(ithChest.chest, ri)
             if rs then
-                local num = ithChest.chest.logistic_network.get_item_count(rs.name, "providers")
+                local num = ithChest.chest.logistic_network.get_item_count({ name = rs.value.name, quality = rs.value.quality }, "providers")
                 if num >= trs.minValue and num <= trs.maxValue then
                     if rs.count ~= trs.request then
-                        set_request_slot(ithChest.chest, ri, rs.name, trs.request)
+                        set_request_slot(ithChest.chest, ri, rs.value.name, trs.request)
                     end
                 else
                     if rs.count ~= 0 then
-                        set_request_slot(ithChest.chest, ri, rs.name, 0)
+                        set_request_slot(ithChest.chest, ri, rs.value.name, 0)
                     end
                 end
             end
