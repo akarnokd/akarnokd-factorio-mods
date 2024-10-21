@@ -270,7 +270,13 @@ script.on_event(defines.events.on_gui_click, function(event)
             local slotIdx = 1
             for _, ingredient in pairs(state.recipeCopyPaste.ingredients) do
                 if ingredient.type == "item" then
-                    state.currentGuiEntity.set_request_slot( { name = ingredient.name, count = itemRecipeMultiplier * ingredient.amount }, slotIdx )
+                    local rp = state.currentGuiEntity.get_requester_point()
+                    if rp.sections_count == 0 then
+                        rp.add_section()
+                    end
+                    local sec = rp.get_section(1)
+                    -- this got too complicated :(
+                    sec.set_slot( slotIdx, { name = ingredient.name, count = itemRecipeMultiplier * ingredient.amount })
                     slotIdx = slotIdx + 1
                 end
             end
@@ -432,8 +438,8 @@ end
 
 function isSupported(entity)
     return (entity.prototype.mining_speed 
-            or entity.prototype.crafting_speed 
-            or entity.prototype.researching_speed
+            or entity.prototype.get_crafting_speed() 
+            or entity.prototype.get_researching_speed()
             or supportedEntityTypes[entity.prototype.name]
         )
         and entity.prototype.name ~= "character"
@@ -554,24 +560,24 @@ function positionToString(pos)
 end
 
 function ensureGlobal()
-    if not global.akarnokdLatc then
-        global.akarnokdLatc = { }
-        global.akarnokdLatc.providerChests = { }
-        global.akarnokdLatc.requesterChests = { }
+    if not storage.akarnokdLatc then
+        storage.akarnokdLatc = { }
+        storage.akarnokdLatc.providerChests = { }
+        storage.akarnokdLatc.requesterChests = { }
     end
-    if not global.akarnokdLatc.latcLimits then
-        global.akarnokdLatc.latcLimits = { }
+    if not storage.akarnokdLatc.latcLimits then
+        storage.akarnokdLatc.latcLimits = { }
     end
-    if not global.akarnokdLatc.thresholds then
-        global.akarnokdLatc.thresholds = { }
+    if not storage.akarnokdLatc.thresholds then
+        storage.akarnokdLatc.thresholds = { }
     end
-    if not global.akarnokdLatc.replaceProviders then
-        global.akarnokdLatc.replaceProviders = { }
+    if not storage.akarnokdLatc.replaceProviders then
+        storage.akarnokdLatc.replaceProviders = { }
     end
-    if not global.akarnokdLatc.factors then
-        global.akarnokdLatc.factors = { }
+    if not storage.akarnokdLatc.factors then
+        storage.akarnokdLatc.factors = { }
     end
-    return global.akarnokdLatc
+    return storage.akarnokdLatc
 end
 
 function getNearbyMachines(entity)

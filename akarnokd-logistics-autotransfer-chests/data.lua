@@ -9,13 +9,13 @@ end
 
 local function updateRecipe(recipe, item)
     recipe.name = item.name
-    recipe.result = item.name
+    recipe.results = {{type="item", name=item.name, amount=1}} 
     recipe.enabled = true
     recipe.ingredients =
     {
-      {"iron-plate", 6},
-      {"electronic-circuit", 3},
-      {"copper-cable", 5}
+      {type = "item", name = "iron-plate", amount = 6},
+      {type = "item", name = "electronic-circuit", amount = 3},
+      {type = "item", name = "copper-cable", amount = 5}
     }
 end
 
@@ -26,9 +26,9 @@ local function copyAndRename(theType, name, newName)
     return copy
 end
 
-local passiveProvider = table.deepcopy(data.raw["item"]["logistic-chest-passive-provider"])
-local activeProvider = table.deepcopy(data.raw["item"]["logistic-chest-active-provider"])
-local requester = table.deepcopy(data.raw["item"]["logistic-chest-requester"])
+local passiveProvider = table.deepcopy(data.raw["item"]["passive-provider-chest"])
+local activeProvider = table.deepcopy(data.raw["item"]["active-provider-chest"])
+local requester = table.deepcopy(data.raw["item"]["requester-chest"])
 
 passiveProvider.name = "akarnokd-latc-passive"
 passiveProvider.place_result = "akarnokd-latc-passive"
@@ -46,13 +46,13 @@ makeIcon(passiveProvider, 0, 1, 0, 0.3)
 makeIcon(activeProvider, 1, 1, 0, 0.3)
 makeIcon(requester, 0, 0, 1, 0.3)
 
-local passiveEntity = copyAndRename("logistic-container", "logistic-chest-passive-provider", passiveProvider.name)
-local activeEntity = copyAndRename("logistic-container", "logistic-chest-active-provider", activeProvider.name)
-local requesterEntity = copyAndRename("logistic-container", "logistic-chest-requester", requester.name)
+local passiveEntity = copyAndRename("logistic-container", "passive-provider-chest", passiveProvider.name)
+local activeEntity = copyAndRename("logistic-container", "active-provider-chest", activeProvider.name)
+local requesterEntity = copyAndRename("logistic-container", "requester-chest", requester.name)
 
-local passiveProviderRecipe = table.deepcopy(data.raw["recipe"]["logistic-chest-passive-provider"]);
-local activeProviderRecipe = table.deepcopy(data.raw["recipe"]["logistic-chest-active-provider"]);
-local requesterRecipe = table.deepcopy(data.raw["recipe"]["logistic-chest-requester"]);
+local passiveProviderRecipe = table.deepcopy(data.raw["recipe"]["passive-provider-chest"]);
+local activeProviderRecipe = table.deepcopy(data.raw["recipe"]["active-provider-chest"]);
+local requesterRecipe = table.deepcopy(data.raw["recipe"]["requester-chest"]);
 
 updateRecipe(passiveProviderRecipe, passiveProvider)
 updateRecipe(activeProviderRecipe, activeProvider)

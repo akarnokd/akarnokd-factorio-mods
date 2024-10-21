@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "title": "akarnokd's Logistics Auto Transfer Chests",
   "author": "akarnokd",
-  "factorio_version": "1.1",
+  "factorio_version": "2.0",
   "dependencies": ["base >= 1.1"],
   "description": "Provider and Requester Chest variants that automatically load and unload items from machines right next to them without the use of inserters."
 }
