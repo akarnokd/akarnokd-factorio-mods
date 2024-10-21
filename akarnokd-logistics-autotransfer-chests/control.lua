@@ -698,22 +698,35 @@ function transferWithRecipe(sourceInventory, destinationInventory, recipe, alimi
 
     for _, ingredient in pairs(recipe.ingredients) do
         local name = ingredient.name
-        local available = sourceContent[name] or 0
-        if available > 0 then
-            local present = destinationContent[name] or 0
+        local availableItem = contentCount(sourceContent, name)
+        if availableItem and availableItem.count > 0 then
             local limit = math.min(alimit, factor * ingredient.amount + 1)
             
+            local presentItem = contentCount(destinationContent, name)
+            local present = 0
+            if presentItem then
+                present = presentItem.count
+            end
             if present < limit then
-                local toInsert = math.min(available, limit - present)
+                local toInsert = math.min(availableItem.count, limit - present)
                 if toInsert > 0 then
-                    local inserted = destinationInventory.insert({ name = name, count = toInsert })
+                    local inserted = destinationInventory.insert({ name = name, quality = availableItem.quality, count = toInsert })
                     if inserted > 0 then
-                        sourceInventory.remove({ name = name, count = inserted })
+                        sourceInventory.remove({ name = name, quality = availableItem.quality, count = inserted })
                     end
                 end
             end
         end
     end
+end
+
+function contentCount(arr, name)
+    for _, item in pairs(arr) do
+        if item.name == name then
+            return item
+        end
+    end
+    return nil
 end
 
 function handleThresholdChests(state, ithChest)
@@ -848,6 +861,7 @@ function handleRequesters(state, aRecipeFactor, insertIfEmpty, maxPerSegment)
                     if dest.type == "assembling-machine" then
                         local outputInv = dest.get_inventory(defines.inventory.assembling_machine_output)
                         if (not insertIfEmpty) or (not outputInv) or invEmpty(outputInv) then
+                            -- log("handleRequesters: transfer " .. dest.type)
                             transfer(inv, dest.get_inventory(defines.inventory.assembling_machine_input), dest.get_recipe(), 1000, "assembling_machine_input", recipeFactor)
                         end
                     elseif dest.type == "furnace" then
