@@ -11,7 +11,7 @@ script.on_event({
     defines.events.script_raised_built,
     defines.events.script_raised_revive,
 }, function(event)
-    handleEntityPlaced(event.created_entity, event.tick, event.tags)
+    handleEntityPlaced(event.entity, event.tick, event.tags)
 end)
 
 script.on_event({
@@ -285,7 +285,7 @@ function set_request_slot(entity, slotIdx, itemname, amount)
     end
     local sec = rp.get_section(1)
     -- this got too complicated :(
-    sec.set_slot( slotIdx, { value = itemname, min = amount, max = amount })
+    sec.set_slot( slotIdx, { value = itemname, min = amount })
 end
 
 script.on_event(defines.events.on_gui_text_changed, function(event)
@@ -450,8 +450,9 @@ function isSupported(entity)
 end
 
 function handleEntityPlaced(entity, tick, tags)
+    log("handleEntityPlaced ")
     if not entity then return end
-    
+    log("handleEntityPlaced " .. entity.name)
     if entity.name == "akarnokd-latc-passive" or entity.name == "akarnokd-latc-active" then
 
         local state = ensureGlobal()
@@ -499,7 +500,7 @@ function handleEntityPlaced(entity, tick, tags)
         end
         
     elseif isSupported(entity) then
-        --log("AutoTransfer to/from " .. entity.name)
+        log("AutoTransfer to/from " .. entity.name)
         local state = ensureGlobal()
         
         for _, item in pairs(getNearbyChests(entity)) do
@@ -652,7 +653,9 @@ function transfer(sourceInventory, destinationInventory, recipe, alimit, tag, fa
     end
     
     local content = sourceInventory.get_contents()
-    for name, count in pairs(content) do
+    for _, elem in pairs(content) do
+        local name = elem.name
+        local count = elem.count
         local currentCount = destinationInventory.get_item_count(name)
         if currentCount < alimit then
             local toInsert = math.min(count, alimit - currentCount)
