@@ -17,6 +17,7 @@ local characterSpeed = settings.startup["akarnokd-override-character-speed"].val
 local droneSpeed = settings.startup["akarnokd-override-drone-speed"].value
 local droneCapacity = settings.startup["akarnokd-override-drone-capacity"].value
 local characterMiningSpeed = settings.startup["akarnokd-override-character-mining-speed"].value
+local minerRange = settings.startup["akarnokd-override-miner-range"].value
 
 for _, pertype in pairs(data.raw) do
   for _, item in pairs(pertype) do
@@ -61,6 +62,11 @@ for _, pertype in pairs(data.raw) do
         item.maximum_wire_distance = poleReach
         item.supply_area_distance = poleReach
     end
+    
+    if item.mining_speed and item.resource_searching_radius then
+        item.resource_searching_radius = item.resource_searching_radius + minerRange
+    end
+    
   end
 end
 

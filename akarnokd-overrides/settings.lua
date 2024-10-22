@@ -85,4 +85,13 @@ data:extend({
         minimum_value = 1,
         maximum_value = 1000000
     },
+    {
+        type = "int-setting",
+        name = "akarnokd-override-miner-range",
+        order = "k",
+        setting_type = "startup",
+        default_value = 0,
+        minimum_value = 0,
+        maximum_value = 1000000
+    },
 })
