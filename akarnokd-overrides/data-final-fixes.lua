@@ -19,6 +19,7 @@ local droneCapacity = settings.startup["akarnokd-override-drone-capacity"].value
 local characterMiningSpeed = settings.startup["akarnokd-override-character-mining-speed"].value
 local minerRange = settings.startup["akarnokd-override-miner-range"].value
 local earlyRobots = settings.startup["akarnokd-override-early-robots"].value
+local cheese = settings.startup["akarnokd-override-cheese"].value
 
 for _, pertype in pairs(data.raw) do
   for _, item in pairs(pertype) do
@@ -98,5 +99,20 @@ if earlyRobots then
     updateRecipe(data.raw["recipe"]["roboport"], 2)
     updateRecipe(data.raw["recipe"]["logistic-robot"], 1)
     updateRecipe(data.raw["recipe"]["construction-robot"], 1)
+
+end
+
+local function updateRecipe2(recipe)
+    recipe.enabled = true
+    recipe.ingredients =
+    {
+      {type = "item", name = "iron-ore", amount = 1},
+    }
+end
+
+if cheese then
+
+    updateRecipe2(data.raw["recipe"]["artillery-turret"])
+    updateRecipe2(data.raw["recipe"]["artillery-shell"])
 
 end

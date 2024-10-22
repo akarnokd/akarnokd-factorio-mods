@@ -101,4 +101,11 @@ data:extend({
         setting_type = "startup",
         default_value = false,
     },
+    {
+        type = "bool-setting",
+        name = "akarnokd-override-cheese",
+        order = "m",
+        setting_type = "startup",
+        default_value = false,
+    },
 })
