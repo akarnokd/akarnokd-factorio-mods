@@ -94,4 +94,11 @@ data:extend({
         minimum_value = 0,
         maximum_value = 1000000
     },
+    {
+        type = "bool-setting",
+        name = "akarnokd-override-early-robots",
+        order = "l",
+        setting_type = "startup",
+        default_value = false,
+    },
 })

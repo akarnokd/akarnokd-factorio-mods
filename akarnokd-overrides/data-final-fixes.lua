@@ -18,6 +18,7 @@ local droneSpeed = settings.startup["akarnokd-override-drone-speed"].value
 local droneCapacity = settings.startup["akarnokd-override-drone-capacity"].value
 local characterMiningSpeed = settings.startup["akarnokd-override-character-mining-speed"].value
 local minerRange = settings.startup["akarnokd-override-miner-range"].value
+local earlyRobots = settings.startup["akarnokd-override-early-robots"].value
 
 for _, pertype in pairs(data.raw) do
   for _, item in pairs(pertype) do
@@ -80,3 +81,22 @@ theCharacter.reach_resource_distance = characterReach
 theCharacter.running_speed = characterSpeed
 theCharacter.distance_per_frame = characterSpeed - 0.02
 theCharacter.mining_speed = characterMiningSpeed
+
+local function updateRecipe(recipe, mult)
+    recipe.enabled = true
+    recipe.ingredients =
+    {
+      {type = "item", name = "iron-plate", amount = 6 * mult},
+      {type = "item", name = "electronic-circuit", amount = 3 * mult},
+      {type = "item", name = "copper-cable", amount = 5 * mult}
+    }
+end
+
+
+if earlyRobots then
+
+    updateRecipe(data.raw["recipe"]["roboport"], 2)
+    updateRecipe(data.raw["recipe"]["logistic-robot"], 1)
+    updateRecipe(data.raw["recipe"]["construction-robot"], 1)
+
+end
