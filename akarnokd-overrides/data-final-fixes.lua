@@ -78,7 +78,7 @@ for _, pertype in pairs(data.raw) do
     end
 
     if item.name == "roboport" and item.construction_radius then
-        item.logistics_radius = roboConstRad
+        item.construction_radius = roboConstRad
     end
     
   end
@@ -132,12 +132,25 @@ end
 if recp > 1 then
 
     for _, a in pairs(data.raw.recipe) do
+        -- log(a.name)
         if a.results then
+            -- log("  " .. a.name .. " results")
             for _, res in pairs(a.results) do
                 local itm = data.raw[res.type][res.name]
+                if not itm then
+                    itm = data.raw["tool"][res.name]
+                end
+                if not itm then
+                    itm = data.raw["ammo"][res.name]
+                end
                 -- log(serpent.block(itm))
-                if itm and (not itm.stack_size or itm.stack_size > 1) then
-                    res.amount = res.amount * recp
+                -- log("    " .. a.name .. " item " .. tostring(itm ~= nil))
+                if itm then
+                    -- log("    " .. a.name .. " stack " .. (itm.item_stack or "nil"))
+                    if (not itm.stack_size) or (itm.stack_size > 1) then
+                        res.amount = res.amount * recp
+                        -- log("   " .. a.name .. " now " .. res.amount)
+                    end
                 end
             end
         end
