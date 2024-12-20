@@ -103,8 +103,26 @@ data:extend({
     },
     {
         type = "int-setting",
+        name = "akarnokd-override-roboport-supply-range",
+        order = "m",
+        setting_type = "startup",
+        default_value = 25,
+        minimum_value = 1,
+        maximum_value = 1000
+    },
+    {
+        type = "int-setting",
+        name = "akarnokd-override-roboport-build-range",
+        order = "n",
+        setting_type = "startup",
+        default_value = 55,
+        minimum_value = 1,
+        maximum_value = 1000
+    },
+    {
+        type = "int-setting",
         name = "akarnokd-override-recipe-mult",
-        order = "k",
+        order = "o",
         setting_type = "startup",
         default_value = 1,
         minimum_value = 1,
@@ -113,7 +131,7 @@ data:extend({
     {
         type = "bool-setting",
         name = "akarnokd-override-cheese",
-        order = "m",
+        order = "p",
         setting_type = "startup",
         default_value = false,
     },

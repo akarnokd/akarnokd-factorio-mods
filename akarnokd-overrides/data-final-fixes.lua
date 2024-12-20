@@ -21,6 +21,8 @@ local minerRange = settings.startup["akarnokd-override-miner-range"].value
 local earlyRobots = settings.startup["akarnokd-override-early-robots"].value
 local cheese = settings.startup["akarnokd-override-cheese"].value
 local recp = settings.startup["akarnokd-override-recipe-mult"].value
+local roboLogRad = settings.startup["akarnokd-override-roboport-supply-range"].value
+local roboConstRad = settings.startup["akarnokd-override-roboport-build-range"].value
 
 for _, pertype in pairs(data.raw) do
   for _, item in pairs(pertype) do
@@ -69,6 +71,14 @@ for _, pertype in pairs(data.raw) do
     
     if item.mining_speed and item.resource_searching_radius then
         item.resource_searching_radius = item.resource_searching_radius + minerRange
+    end
+    
+    if item.name == "roboport" and item.logistics_radius then
+        item.logistics_radius = roboLogRad
+    end
+
+    if item.name == "roboport" and item.construction_radius then
+        item.logistics_radius = roboConstRad
     end
     
   end
