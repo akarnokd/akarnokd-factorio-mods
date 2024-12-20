@@ -143,6 +143,9 @@ if recp > 1 then
                 if not itm then
                     itm = data.raw["ammo"][res.name]
                 end
+                if not itm then
+                    itm = data.raw["rail-planner"][res.name]
+                end
                 -- log(serpent.block(itm))
                 -- log("    " .. a.name .. " item " .. tostring(itm ~= nil))
                 if itm then
