@@ -20,6 +20,7 @@ local characterMiningSpeed = settings.startup["akarnokd-override-character-minin
 local minerRange = settings.startup["akarnokd-override-miner-range"].value
 local earlyRobots = settings.startup["akarnokd-override-early-robots"].value
 local cheese = settings.startup["akarnokd-override-cheese"].value
+local recp = settings.startup["akarnokd-override-recipe-mult"].value
 
 for _, pertype in pairs(data.raw) do
   for _, item in pairs(pertype) do
@@ -30,7 +31,8 @@ for _, pertype in pairs(data.raw) do
             and item.name ~= "blueprint-book"
             and item.name ~= "spidertron-remote"
             and item.name ~= "nullius-mecha-remote"
-            and item.name ~= "deconstruction-planner" and item.name ~= "item-with-inventory"
+            and item.name ~= "deconstruction-planner"
+            and item.name ~= "item-with-inventory"
             and not item.inventory_size_bonus
             and not item.equipment_grid
         then
@@ -114,5 +116,21 @@ if cheese then
 
     updateRecipe2(data.raw["recipe"]["artillery-turret"])
     updateRecipe2(data.raw["recipe"]["artillery-shell"])
+
+end
+
+if recp > 1 then
+
+    for _, a in pairs(data.raw.recipe) do
+        if a.results then
+            for _, res in pairs(a.results) do
+                local itm = data.raw[res.type][res.name]
+                -- log(serpent.block(itm))
+                if itm and (not itm.stack_size or itm.stack_size > 1) then
+                    res.amount = res.amount * recp
+                end
+            end
+        end
+    end
 
 end

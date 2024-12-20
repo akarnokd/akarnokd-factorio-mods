@@ -102,6 +102,15 @@ data:extend({
         default_value = false,
     },
     {
+        type = "int-setting",
+        name = "akarnokd-override-recipe-mult",
+        order = "k",
+        setting_type = "startup",
+        default_value = 1,
+        minimum_value = 1,
+        maximum_value = 1000
+    },
+    {
         type = "bool-setting",
         name = "akarnokd-override-cheese",
         order = "m",
