@@ -134,34 +134,36 @@ if recp > 1 or recpin > 1 then
 
     for _, a in pairs(data.raw.recipe) do
         -- log(a.name)
-        if recpin > 1 and a.ingredients then
-            for _, ingr in pairs(a.ingredients) do
-                ingr.amount = ingr.amount * recpin
+        if not string.find(a.name, "-barrel") then
+            if recpin > 1 and a.ingredients then
+                for _, ingr in pairs(a.ingredients) do
+                    ingr.amount = ingr.amount * recpin
+                end
             end
-        end
-        if recp > 1 and a.results then
-            -- log("  " .. a.name .. " results")
-            for _, res in pairs(a.results) do
-                local itm = data.raw[res.type][res.name]
-                if not itm then
-                    itm = data.raw["tool"][res.name]
-                end
-                if not itm then
-                    itm = data.raw["ammo"][res.name]
-                end
-                if not itm then
-                    itm = data.raw["rail-planner"][res.name]
-                end
-                if not itm then
-                    itm = data.raw["module"][res.name]
-                end
-                -- log(serpent.block(itm))
-                -- log("    " .. a.name .. " item " .. tostring(itm ~= nil))
-                if itm then
-                    -- log("    " .. a.name .. " stack " .. (itm.item_stack or "nil"))
-                    if (not itm.stack_size) or (itm.stack_size > 1) then
-                        res.amount = res.amount * recp
-                        -- log("   " .. a.name .. " now " .. res.amount)
+            if recp > 1 and a.results then
+                -- log("  " .. a.name .. " results")
+                for _, res in pairs(a.results) do
+                    local itm = data.raw[res.type][res.name]
+                    if not itm then
+                        itm = data.raw["tool"][res.name]
+                    end
+                    if not itm then
+                        itm = data.raw["ammo"][res.name]
+                    end
+                    if not itm then
+                        itm = data.raw["rail-planner"][res.name]
+                    end
+                    if not itm then
+                        itm = data.raw["module"][res.name]
+                    end
+                    -- log(serpent.block(itm))
+                    -- log("    " .. a.name .. " item " .. tostring(itm ~= nil))
+                    if itm then
+                        -- log("    " .. a.name .. " stack " .. (itm.item_stack or "nil"))
+                        if (not itm.stack_size) or (itm.stack_size > 1) then
+                            res.amount = res.amount * recp
+                            -- log("   " .. a.name .. " now " .. res.amount)
+                        end
                     end
                 end
             end
