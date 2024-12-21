@@ -21,6 +21,7 @@ local minerRange = settings.startup["akarnokd-override-miner-range"].value
 local earlyRobots = settings.startup["akarnokd-override-early-robots"].value
 local cheese = settings.startup["akarnokd-override-cheese"].value
 local recp = settings.startup["akarnokd-override-recipe-mult"].value
+local recpin = settings.startup["akarnokd-override-recipe-in-mult"].value
 local roboLogRad = settings.startup["akarnokd-override-roboport-supply-range"].value
 local roboConstRad = settings.startup["akarnokd-override-roboport-build-range"].value
 
@@ -129,11 +130,16 @@ if cheese then
 
 end
 
-if recp > 1 then
+if recp > 1 or recpin > 1 then
 
     for _, a in pairs(data.raw.recipe) do
         -- log(a.name)
-        if a.results then
+        if recpin > 1 and a.ingredients then
+            for _, ingr in pairs(a.ingredients) do
+                ingr.amount = ingr.amount * recpin
+            end
+        end
+        if recp > 1 and a.results then
             -- log("  " .. a.name .. " results")
             for _, res in pairs(a.results) do
                 local itm = data.raw[res.type][res.name]

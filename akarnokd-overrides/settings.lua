@@ -121,6 +121,15 @@ data:extend({
     },
     {
         type = "int-setting",
+        name = "akarnokd-override-recipe-in-mult",
+        order = "o",
+        setting_type = "startup",
+        default_value = 1,
+        minimum_value = 1,
+        maximum_value = 1000
+    },
+    {
+        type = "int-setting",
         name = "akarnokd-override-recipe-mult",
         order = "o",
         setting_type = "startup",
