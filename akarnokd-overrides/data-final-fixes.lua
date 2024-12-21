@@ -134,7 +134,7 @@ if recp > 1 or recpin > 1 then
 
     for _, a in pairs(data.raw.recipe) do
         -- log(a.name)
-        if not string.find(a.name, "-barrel") then
+        if not string.find(a.name, "-barrel")and a.name ~= "kovarex-enrichment-process" then
             if recpin > 1 and a.ingredients then
                 for _, ingr in pairs(a.ingredients) do
                     ingr.amount = ingr.amount * recpin
