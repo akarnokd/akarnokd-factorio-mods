@@ -24,6 +24,7 @@ local recp = settings.startup["akarnokd-override-recipe-mult"].value
 local recpin = settings.startup["akarnokd-override-recipe-in-mult"].value
 local roboLogRad = settings.startup["akarnokd-override-roboport-supply-range"].value
 local roboConstRad = settings.startup["akarnokd-override-roboport-build-range"].value
+local researchSpeed = settings.startup["akarnokd-override-research-speed"].value
 
 for _, pertype in pairs(data.raw) do
   for _, item in pairs(pertype) do
@@ -80,6 +81,10 @@ for _, pertype in pairs(data.raw) do
 
     if item.name == "roboport" and item.construction_radius then
         item.construction_radius = roboConstRad
+    end
+    
+    if item.researching_speed then
+        item.researching_speed = researchSpeed
     end
     
   end

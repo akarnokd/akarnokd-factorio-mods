@@ -138,9 +138,18 @@ data:extend({
         maximum_value = 1000
     },
     {
+        type = "int-setting",
+        name = "akarnokd-override-research-speed",
+        order = "p",
+        setting_type = "startup",
+        default_value = 1,
+        minimum_value = 1,
+        maximum_value = 1000
+    },
+    {
         type = "bool-setting",
         name = "akarnokd-override-cheese",
-        order = "p",
+        order = "q",
         setting_type = "startup",
         default_value = false,
     },
