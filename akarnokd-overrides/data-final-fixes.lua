@@ -161,6 +161,9 @@ if recp > 1 or recpin > 1 then
                     if not itm then
                         itm = data.raw["module"][res.name]
                     end
+                    if not itm then
+                        itm = data.raw["capsule"][res.name]
+                    end
                     -- log(serpent.block(itm))
                     -- log("    " .. a.name .. " item " .. tostring(itm ~= nil))
                     if itm then
