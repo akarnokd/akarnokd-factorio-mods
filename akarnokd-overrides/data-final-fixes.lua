@@ -166,7 +166,7 @@ if recp > 1 or recpin > 1 then
                     end
                     -- log(serpent.block(itm))
                     -- log("    " .. a.name .. " item " .. tostring(itm ~= nil))
-                    if itm then
+                    if itm and res.amount then
                         -- log("    " .. a.name .. " stack " .. (itm.item_stack or "nil"))
                         if (not itm.stack_size) or (itm.stack_size > 1) then
                             res.amount = res.amount * recp
